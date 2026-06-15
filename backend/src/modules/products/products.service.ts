@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ListProductsDto, ProductSortBy } from './dto/list-products.dto';
@@ -195,6 +200,46 @@ export class ProductsService {
       isActive: p.isActive,
       createdAt: p.createdAt,
     };
+  }
+
+  async subscribeStockNotification(
+    supabaseUser: SupabaseUser,
+    productId: string,
+    variantId: string,
+  ) {
+    const user = await this.resolveUser(supabaseUser.id);
+
+    const variant = await this.prisma.productVariant.findUnique({
+      where: { id: variantId },
+    });
+    if (!variant || variant.productId !== productId) {
+      throw new NotFoundException('Variant not found');
+    }
+
+    return this.prisma.stockNotification.upsert({
+      where: { userId_variantId: { userId: user.id, variantId } },
+      create: { userId: user.id, productId, variantId },
+      update: {},
+      include: {
+        variant: {
+          select: {
+            id: true,
+            sku: true,
+            size: true,
+            color: true,
+            product: {
+              select: { id: true, name: true, slug: true, thumbnailUrl: true },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  private async resolveUser(supabaseId: string) {
+    const user = await this.prisma.user.findUnique({ where: { supabaseId } });
+    if (!user) throw new UnauthorizedException('User not found');
+    return user;
   }
 
   private mapProductDetail(p: ProductDetail, stats: ReviewStats) {
