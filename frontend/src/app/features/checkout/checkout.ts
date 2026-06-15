@@ -125,7 +125,7 @@ export class CheckoutPage implements OnInit {
       this.processing.set(false);
     } else {
       this.cart.clear();
-      this.router.navigate(['/user/orders'], { queryParams: { success: this.orderId } });
+      this.router.navigate(['/checkout/success'], { queryParams: { orderId: this.orderId } });
     }
   }
 
