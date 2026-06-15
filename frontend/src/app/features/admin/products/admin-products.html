@@ -95,7 +95,8 @@
 <!-- Slide-over panel -->
 @if (panelMode()) {
   <!-- Backdrop -->
-  <div class="fixed inset-0 bg-black/30 z-40" (click)="closePanel()"></div>
+  <div class="fixed inset-0 bg-black/30 z-40" role="button" tabindex="0"
+       aria-label="Cerrar panel" (click)="closePanel()" (keydown.escape)="closePanel()"></div>
 
   <!-- Panel -->
   <div class="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col">
@@ -112,7 +113,7 @@
 
       <!-- Thumbnail -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Imagen del producto</label>
+        <p class="block text-sm font-medium text-gray-700 mb-2">Imagen del producto</p>
         <app-cloudinary-upload [(value)]="form.thumbnailUrl" />
       </div>
 
@@ -182,8 +183,8 @@
 
       <!-- Active (edit only) -->
       @if (panelMode() === 'edit') {
-        <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" [(ngModel)]="form.isActive" class="w-4 h-4 text-indigo-600 rounded" />
+        <label for="p-active" class="flex items-center gap-3 cursor-pointer">
+          <input id="p-active" type="checkbox" [(ngModel)]="form.isActive" class="w-4 h-4 text-indigo-600 rounded" />
           <span class="text-sm font-medium text-gray-700">Producto activo</span>
         </label>
       }
