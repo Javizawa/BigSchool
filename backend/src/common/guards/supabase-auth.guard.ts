@@ -37,6 +37,7 @@ export class SupabaseAuthGuard implements CanActivate {
     if (error || !user) throw new UnauthorizedException();
 
     request.supabaseUser = user;
+    request.user = user;
     return true;
   }
 
