@@ -32,10 +32,13 @@ describe('ProductsService', () => {
 
   beforeEach(async () => {
     Object.values(mockPrisma).forEach((model) =>
-      Object.values(model).forEach((fn) => (fn as jest.Mock).mockReset()),
+      Object.values(model).forEach((fn) => fn.mockReset()),
     );
     const module = await Test.createTestingModule({
-      providers: [ProductsService, { provide: PrismaService, useValue: mockPrisma }],
+      providers: [
+        ProductsService,
+        { provide: PrismaService, useValue: mockPrisma },
+      ],
     }).compile();
     service = module.get(ProductsService);
   });
@@ -48,7 +51,11 @@ describe('ProductsService', () => {
         { productId: 'prod-1', _avg: { rating: 4.5 }, _count: { id: 10 } },
       ]);
 
-      const result = await service.findAll({ page: 1, limit: 20, sortBy: ProductSortBy.NEWEST });
+      const result = await service.findAll({
+        page: 1,
+        limit: 20,
+        sortBy: ProductSortBy.NEWEST,
+      });
 
       expect(result.meta.total).toBe(1);
       expect(result.meta.totalPages).toBe(1);
@@ -61,7 +68,11 @@ describe('ProductsService', () => {
       mockPrisma.product.count.mockResolvedValue(1);
       mockPrisma.review.groupBy.mockResolvedValue([]);
 
-      const result = await service.findAll({ page: 1, limit: 20, sortBy: ProductSortBy.NEWEST });
+      const result = await service.findAll({
+        page: 1,
+        limit: 20,
+        sortBy: ProductSortBy.NEWEST,
+      });
 
       expect(result.data[0].averageRating).toBeNull();
       expect(result.data[0].reviewCount).toBe(0);
@@ -72,7 +83,11 @@ describe('ProductsService', () => {
       mockPrisma.product.count.mockResolvedValue(0);
       mockPrisma.review.groupBy.mockResolvedValue([]);
 
-      const result = await service.findAll({ page: 1, limit: 20, sortBy: ProductSortBy.NEWEST });
+      const result = await service.findAll({
+        page: 1,
+        limit: 20,
+        sortBy: ProductSortBy.NEWEST,
+      });
 
       expect(result.data).toHaveLength(0);
       expect(result.meta.total).toBe(0);
@@ -85,12 +100,19 @@ describe('ProductsService', () => {
 
     it('throws NotFoundException when product does not exist', async () => {
       mockPrisma.product.findUnique.mockResolvedValue(null);
-      await expect(service.findOne('missing-id')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('missing-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws NotFoundException when product is inactive', async () => {
-      mockPrisma.product.findUnique.mockResolvedValue({ ...detailProduct, isActive: false });
-      await expect(service.findOne('prod-1')).rejects.toThrow(NotFoundException);
+      mockPrisma.product.findUnique.mockResolvedValue({
+        ...detailProduct,
+        isActive: false,
+      });
+      await expect(service.findOne('prod-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns product detail for an active product', async () => {
@@ -117,7 +139,10 @@ describe('ProductsService', () => {
 
     it('throws NotFoundException when variant does not belong to the product', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(dbUser);
-      mockPrisma.productVariant.findUnique.mockResolvedValue({ id: 'v1', productId: 'other-product' });
+      mockPrisma.productVariant.findUnique.mockResolvedValue({
+        id: 'v1',
+        productId: 'other-product',
+      });
 
       await expect(
         service.subscribeStockNotification(supabaseUser, 'p1', 'v1'),
@@ -125,12 +150,24 @@ describe('ProductsService', () => {
     });
 
     it('upserts a stock notification and returns it', async () => {
-      const notification = { id: 'notif-1', userId: dbUser.id, variantId: 'v1', productId: 'p1' };
+      const notification = {
+        id: 'notif-1',
+        userId: dbUser.id,
+        variantId: 'v1',
+        productId: 'p1',
+      };
       mockPrisma.user.findUnique.mockResolvedValue(dbUser);
-      mockPrisma.productVariant.findUnique.mockResolvedValue({ id: 'v1', productId: 'p1' });
+      mockPrisma.productVariant.findUnique.mockResolvedValue({
+        id: 'v1',
+        productId: 'p1',
+      });
       mockPrisma.stockNotification.upsert.mockResolvedValue(notification);
 
-      const result = await service.subscribeStockNotification(supabaseUser, 'p1', 'v1');
+      const result = await service.subscribeStockNotification(
+        supabaseUser,
+        'p1',
+        'v1',
+      );
 
       expect(result).toEqual(notification);
       expect(mockPrisma.stockNotification.upsert).toHaveBeenCalledWith(
