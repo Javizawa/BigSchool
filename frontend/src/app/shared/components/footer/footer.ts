@@ -32,12 +32,10 @@ import { RouterLink } from '@angular/router';
           <div>
             <h4 class="text-white font-semibold text-sm mb-3 uppercase tracking-wide">Newsletter</h4>
             <p class="text-sm mb-3">Recibe las últimas novedades y ofertas.</p>
-            <form class="flex gap-2">
-              <input type="email" placeholder="tu@email.com"
-                class="flex-1 px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:border-indigo-500" />
-              <button type="submit"
-                class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors">→</button>
-            </form>
+            <a routerLink="/newsletter"
+               class="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors">
+              Suscribirme →
+            </a>
           </div>
         </div>
         <div class="border-t border-gray-800 pt-6 text-sm text-center">

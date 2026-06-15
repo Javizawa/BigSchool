@@ -34,6 +34,22 @@ export const routes: Routes = [
         loadComponent: () => import('./features/checkout/checkout').then((m) => m.CheckoutPage),
       },
       {
+        path: 'checkout/success',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./features/checkout/checkout-success/checkout-success').then(
+            (m) => m.CheckoutSuccessPage,
+          ),
+      },
+      {
+        path: 'size-guide',
+        loadComponent: () => import('./features/size-guide/size-guide').then((m) => m.SizeGuidePage),
+      },
+      {
+        path: 'newsletter',
+        loadComponent: () => import('./features/newsletter/newsletter').then((m) => m.NewsletterPage),
+      },
+      {
         path: 'user',
         canActivate: [authGuard],
         loadChildren: () => import('./features/user/user.routes').then((m) => m.userRoutes),
@@ -50,5 +66,9 @@ export const routes: Routes = [
     path: 'auth/callback',
     loadComponent: () => import('./features/auth/callback/callback').then((m) => m.AuthCallbackPage),
   },
-  { path: '**', redirectTo: '' },
+  {
+    path: '**',
+    loadComponent: () =>
+      import('./shared/components/not-found/not-found').then((m) => m.NotFoundComponent),
+  },
 ];
