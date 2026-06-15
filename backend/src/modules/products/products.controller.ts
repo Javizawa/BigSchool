@@ -2,10 +2,14 @@ import {
   Controller,
   DefaultValuePipe,
   Get,
+  HttpCode,
   Param,
   ParseIntPipe,
+  Post,
   Query,
 } from '@nestjs/common';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { ListProductsDto } from './dto/list-products.dto';
 import { ProductsService } from './products.service';
@@ -33,5 +37,15 @@ export class ProductsController {
     @Query('limit', new DefaultValuePipe(8), ParseIntPipe) limit: number,
   ) {
     return this.service.findRelated(id, Math.min(limit, 20));
+  }
+
+  @Post(':productId/variants/:variantId/notify-stock')
+  @HttpCode(201)
+  subscribeStockNotification(
+    @CurrentUser() user: SupabaseUser,
+    @Param('productId') productId: string,
+    @Param('variantId') variantId: string,
+  ) {
+    return this.service.subscribeStockNotification(user, productId, variantId);
   }
 }
