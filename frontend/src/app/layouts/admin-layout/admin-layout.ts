@@ -50,5 +50,7 @@ export class AdminLayout {
     { path: 'returns', label: 'Devoluciones', icon: '↩️' },
     { path: 'users', label: 'Usuarios', icon: '👥' },
     { path: 'coupons', label: 'Cupones', icon: '🏷️' },
+    { path: 'categories', label: 'Categorías', icon: '📂' },
+    { path: 'brands', label: 'Marcas', icon: '👟' },
   ];
 }
