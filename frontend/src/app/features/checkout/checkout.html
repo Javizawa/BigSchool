@@ -1,0 +1,123 @@
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">Finalizar compra</h1>
+
+  <!-- Steps -->
+  <div class="flex items-center gap-3 mb-8 text-sm">
+    <span [class.font-bold]="step() === 'address'" [class.text-indigo-600]="step() === 'address'" class="text-gray-500">1. Dirección</span>
+    <span class="text-gray-300">→</span>
+    <span [class.font-bold]="step() === 'payment'" [class.text-indigo-600]="step() === 'payment'" class="text-gray-500">2. Pago</span>
+  </div>
+
+  @if (loading()) {
+    <app-spinner />
+  } @else {
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Main step -->
+      <div class="lg:col-span-2">
+
+        @if (step() === 'address') {
+          <div class="bg-white rounded-2xl border border-gray-100 p-6">
+            <h2 class="font-bold text-gray-900 mb-4">Dirección de envío</h2>
+
+            @if (addresses().length === 0) {
+              <div class="text-center py-8 text-gray-500">
+                <p class="mb-4">No tienes direcciones guardadas.</p>
+                <a routerLink="/user/addresses" class="text-indigo-600 hover:text-indigo-800 font-medium">Añadir dirección →</a>
+              </div>
+            } @else {
+              <div class="space-y-3 mb-6">
+                @for (addr of addresses(); track addr.id) {
+                  <label [for]="'addr-' + addr.id" class="flex gap-3 p-4 border-2 rounded-xl cursor-pointer transition-colors"
+                    [class.border-indigo-500]="selectedAddressId === addr.id"
+                    [class.border-gray-100]="selectedAddressId !== addr.id">
+                    <input [id]="'addr-' + addr.id" type="radio" [(ngModel)]="selectedAddressId" [value]="addr.id" class="mt-1" />
+                    <div>
+                      <p class="font-medium text-gray-900">{{ addr.fullName }} <span class="text-xs text-gray-400 ml-1">{{ addr.label }}</span></p>
+                      <p class="text-sm text-gray-600">{{ addr.line1 }}, {{ addr.city }} {{ addr.postalCode }}</p>
+                      <p class="text-sm text-gray-500">{{ addr.province }}, {{ addr.country }}</p>
+                    </div>
+                  </label>
+                }
+              </div>
+
+              <!-- Coupon -->
+              <div class="border-t border-gray-100 pt-5">
+                <label for="coupon-code" class="block text-sm font-medium text-gray-700 mb-2">Código de cupón (opcional)</label>
+                <div class="flex gap-2">
+                  <input id="coupon-code" type="text" [(ngModel)]="couponCode" [disabled]="couponApplied()"
+                    placeholder="BIGSCHOOL20"
+                    class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+                  <button (click)="validateCoupon()" [disabled]="couponApplied()"
+                    class="bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-medium px-4 py-2.5 rounded-xl text-sm transition-colors">
+                    {{ couponApplied() ? '✓ Aplicado' : 'Validar' }}
+                  </button>
+                </div>
+                @if (couponError()) { <p class="text-red-500 text-xs mt-1">{{ couponError() }}</p> }
+              </div>
+
+              @if (error()) {
+                <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{{ error() }}</div>
+              }
+
+              <button (click)="proceedToPayment()" [disabled]="!selectedAddressId || processing()"
+                class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition-colors">
+                {{ processing() ? 'Procesando...' : 'Continuar al pago →' }}
+              </button>
+            }
+          </div>
+        }
+
+        @if (step() === 'payment') {
+          <div class="bg-white rounded-2xl border border-gray-100 p-6">
+            <h2 class="font-bold text-gray-900 mb-6">Datos de pago</h2>
+
+            <div id="card-element" class="border border-gray-200 rounded-xl px-4 py-4 bg-gray-50 mb-6"></div>
+
+            @if (error()) {
+              <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{{ error() }}</div>
+            }
+
+            <button (click)="confirmPayment()" [disabled]="processing()"
+              class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition-colors flex items-center justify-center gap-2">
+              @if (processing()) {
+                <span class="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+                Procesando pago...
+              } @else {
+                🔒 Pagar {{ subtotal | price }}
+              }
+            </button>
+
+            <p class="text-xs text-gray-400 text-center mt-3">Pago seguro procesado por Stripe. Tus datos están encriptados.</p>
+          </div>
+        }
+      </div>
+
+      <!-- Order summary -->
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-2xl border border-gray-100 p-5 sticky top-20">
+          <h3 class="font-bold text-gray-900 mb-4">Tu pedido</h3>
+          <div class="space-y-3">
+            @for (item of cart.cart()?.items ?? []; track item.id) {
+              <div class="flex gap-3 text-sm">
+                @if (item.variant.product.thumbnailUrl) {
+                  <img [src]="item.variant.product.thumbnailUrl" [alt]="item.variant.product.name" class="w-12 h-12 object-cover rounded-lg bg-gray-50" />
+                }
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-gray-900 truncate">{{ item.variant.product.name }}</p>
+                  <p class="text-gray-500">T.{{ item.variant.size }} × {{ item.quantity }}</p>
+                </div>
+                <span class="font-semibold shrink-0">
+                  {{ (item.variant.product.salePrice ?? item.variant.product.price) * item.quantity | price }}
+                </span>
+              </div>
+            }
+          </div>
+          <div class="border-t border-gray-100 mt-4 pt-4 flex justify-between font-bold">
+            <span>Total</span>
+            <span>{{ subtotal | price }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

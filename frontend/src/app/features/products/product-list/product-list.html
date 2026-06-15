@@ -1,0 +1,99 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="flex gap-8">
+    <!-- Filters sidebar -->
+    <aside class="hidden lg:block w-56 shrink-0">
+      <h3 class="font-semibold text-gray-900 mb-4">Filtros</h3>
+
+      <div class="space-y-5">
+        <div>
+          <label for="filter-gender" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Género</label>
+          <select id="filter-gender" [(ngModel)]="filter.gender" (change)="applyFilter()"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+            <option value="">Todos</option>
+            <option value="MEN">Hombre</option>
+            <option value="WOMEN">Mujer</option>
+            <option value="UNISEX">Unisex</option>
+            <option value="KIDS">Niños</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="filter-category" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Categoría</label>
+          <select id="filter-category" [(ngModel)]="filter.categoryId" (change)="applyFilter()"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+            <option value="">Todas</option>
+            @for (cat of categories(); track cat.id) {
+              <option [value]="cat.id">{{ cat.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label for="filter-brand" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Marca</label>
+          <select id="filter-brand" [(ngModel)]="filter.brandId" (change)="applyFilter()"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+            <option value="">Todas</option>
+            @for (b of brands(); track b.id) {
+              <option [value]="b.id">{{ b.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label for="filter-minPrice" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Precio</label>
+          <div class="flex gap-2 items-center">
+            <input id="filter-minPrice" type="number" [(ngModel)]="filter.minPrice" placeholder="Min"
+              class="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-indigo-400" />
+            <span class="text-gray-400">–</span>
+            <input type="number" [(ngModel)]="filter.maxPrice" placeholder="Max"
+              class="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-indigo-400" />
+          </div>
+          <button (click)="applyFilter()" class="mt-2 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2 rounded-lg transition-colors">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Results -->
+    <div class="flex-1">
+      <!-- Search + sort bar -->
+      <div class="flex gap-3 mb-6">
+        <input type="search" [(ngModel)]="filter.search" (keydown.enter)="applyFilter()"
+          placeholder="Buscar zapatillas..."
+          class="flex-1 border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-indigo-400" />
+        <select [(ngModel)]="filter.sortBy" (change)="applyFilter()"
+          class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+          <option value="newest">Más reciente</option>
+          <option value="price_asc">Precio: menor</option>
+          <option value="price_desc">Precio: mayor</option>
+          <option value="rating">Valoración</option>
+        </select>
+      </div>
+
+      @if (loading()) {
+        <app-spinner />
+      } @else if (result()) {
+        <div>
+          <p class="text-sm text-gray-500 mb-4">{{ result()!.meta.total }} productos</p>
+          @if (result()!.data.length === 0) {
+            <div class="text-center py-20 text-gray-400">
+              <p class="text-5xl mb-4">👟</p>
+              <p class="font-medium">No encontramos productos con estos filtros.</p>
+            </div>
+          } @else {
+            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              @for (p of result()!.data; track p.id) {
+                <app-product-card [product]="p" />
+              }
+            </div>
+            <app-pagination
+              [page]="result()!.meta.page"
+              [pages]="result()!.meta.pages"
+              (pageChange)="onPageChange($event)" />
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

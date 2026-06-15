@@ -1,0 +1,104 @@
+<div class="max-w-2xl mx-auto px-4 py-10">
+  <div class="flex items-center justify-between mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">Mis direcciones</h1>
+    <button (click)="openNew()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors">
+      + Añadir
+    </button>
+  </div>
+
+  @if (loading()) {
+    <app-spinner />
+  } @else if (addresses().length === 0 && !showForm()) {
+    <div class="text-center py-20 text-gray-500">
+      <p class="text-4xl mb-4">📍</p>
+      <p class="font-medium mb-4">No tienes direcciones guardadas</p>
+      <button (click)="openNew()" class="text-indigo-600 hover:text-indigo-800 font-medium">Añadir dirección →</button>
+    </div>
+  } @else {
+    <div class="space-y-3 mb-6">
+      @for (a of addresses(); track a.id) {
+        <div class="bg-white rounded-2xl border border-gray-100 p-5">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-gray-900">{{ a.fullName }}</span>
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{{ a.label }}</span>
+                @if (a.isDefault) { <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">Principal</span> }
+              </div>
+              <p class="text-sm text-gray-600">{{ a.line1 }}@if (a.line2) {, {{ a.line2 }}}</p>
+              <p class="text-sm text-gray-600">{{ a.postalCode }} {{ a.city }}, {{ a.province }}</p>
+              <p class="text-sm text-gray-500">{{ a.country }}</p>
+            </div>
+            <div class="flex gap-2">
+              <button (click)="openEdit(a)" class="text-sm text-indigo-600 hover:text-indigo-800 transition-colors">Editar</button>
+              <button (click)="delete(a.id)" class="text-sm text-red-500 hover:text-red-700 transition-colors">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (showForm()) {
+    <div class="bg-white rounded-2xl border border-gray-100 p-6">
+      <h2 class="font-bold text-gray-900 mb-4">{{ editingId() ? 'Editar' : 'Nueva' }} dirección</h2>
+      <form (ngSubmit)="save()" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="addr-label" class="block text-xs font-medium text-gray-600 mb-1">Etiqueta</label>
+            <input id="addr-label" type="text" [(ngModel)]="form.label" name="label" required
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+          </div>
+          <div>
+            <label for="addr-fullName" class="block text-xs font-medium text-gray-600 mb-1">Nombre completo</label>
+            <input id="addr-fullName" type="text" [(ngModel)]="form.fullName" name="fullName" required
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+          </div>
+        </div>
+        <div>
+          <label for="addr-line1" class="block text-xs font-medium text-gray-600 mb-1">Dirección</label>
+          <input id="addr-line1" type="text" [(ngModel)]="form.line1" name="line1" required
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label for="addr-postalCode" class="block text-xs font-medium text-gray-600 mb-1">CP</label>
+            <input id="addr-postalCode" type="text" [(ngModel)]="form.postalCode" name="postalCode" required
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+          </div>
+          <div class="col-span-2">
+            <label for="addr-city" class="block text-xs font-medium text-gray-600 mb-1">Ciudad</label>
+            <input id="addr-city" type="text" [(ngModel)]="form.city" name="city" required
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="addr-province" class="block text-xs font-medium text-gray-600 mb-1">Provincia</label>
+            <input id="addr-province" type="text" [(ngModel)]="form.province" name="province" required
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+          </div>
+          <div>
+            <label for="addr-country" class="block text-xs font-medium text-gray-600 mb-1">País</label>
+            <input id="addr-country" type="text" [(ngModel)]="form.country" name="country" required
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+          </div>
+        </div>
+        <label class="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" [(ngModel)]="form.isDefault" name="isDefault" class="rounded" />
+          Dirección principal
+        </label>
+        <div class="flex gap-3 pt-2">
+          <button type="submit" [disabled]="saving()"
+            class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
+            {{ saving() ? 'Guardando...' : 'Guardar' }}
+          </button>
+          <button type="button" (click)="showForm.set(false)"
+            class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-5 py-2.5 rounded-xl text-sm transition-colors">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+</div>
