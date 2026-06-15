@@ -1,13 +1,17 @@
 <div>
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-bold text-gray-900">Productos</h1>
+    <button (click)="openCreate()"
+      class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+      + Nuevo producto
+    </button>
   </div>
 
   <!-- Search -->
   <div class="flex gap-3 mb-6">
     <input type="search" [(ngModel)]="search" (keydown.enter)="load()" placeholder="Buscar por nombre o slug..."
       class="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm bg-white focus:outline-none focus:border-indigo-400" />
-    <button (click)="load()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
+    <button (click)="load()" class="bg-white border border-gray-200 hover:border-indigo-400 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
       Buscar
     </button>
   </div>
@@ -35,6 +39,13 @@
                 <div class="flex items-center gap-3">
                   @if (p.thumbnailUrl) {
                     <img [src]="p.thumbnailUrl" [alt]="p.name" class="w-10 h-10 object-cover rounded-lg bg-gray-100" />
+                  } @else {
+                    <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
                   }
                   <div>
                     <p class="font-medium text-gray-900 line-clamp-1">{{ p.name }}</p>
@@ -63,6 +74,7 @@
               </td>
               <td class="px-5 py-3 text-right">
                 <div class="flex justify-end gap-2">
+                  <button (click)="openEdit(p)" class="text-xs text-gray-600 hover:text-gray-900 transition-colors">Editar</button>
                   <button (click)="toggleActive(p)" class="text-xs text-indigo-600 hover:text-indigo-800 transition-colors">
                     {{ p.isActive ? 'Desactivar' : 'Activar' }}
                   </button>
@@ -79,3 +91,114 @@
     }
   }
 </div>
+
+<!-- Slide-over panel -->
+@if (panelMode()) {
+  <!-- Backdrop -->
+  <div class="fixed inset-0 bg-black/30 z-40" (click)="closePanel()"></div>
+
+  <!-- Panel -->
+  <div class="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+      <h2 class="text-lg font-bold text-gray-900">
+        {{ panelMode() === 'create' ? 'Nuevo producto' : 'Editar producto' }}
+      </h2>
+      <button (click)="closePanel()" class="text-gray-400 hover:text-gray-600 transition-colors text-xl leading-none">×</button>
+    </div>
+
+    <!-- Form -->
+    <div class="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+
+      <!-- Thumbnail -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Imagen del producto</label>
+        <app-cloudinary-upload [(value)]="form.thumbnailUrl" />
+      </div>
+
+      <!-- Name -->
+      <div>
+        <label for="p-name" class="block text-sm font-medium text-gray-700 mb-1">Nombre <span class="text-red-500">*</span></label>
+        <input id="p-name" type="text" [(ngModel)]="form.name" required
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+      </div>
+
+      <!-- Brand + Category -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="p-brand" class="block text-sm font-medium text-gray-700 mb-1">Marca <span class="text-red-500">*</span></label>
+          <select id="p-brand" [(ngModel)]="form.brandId" required
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400">
+            <option value="">Seleccionar...</option>
+            @for (b of brands(); track b.id) {
+              <option [value]="b.id">{{ b.name }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="p-category" class="block text-sm font-medium text-gray-700 mb-1">Categoría <span class="text-red-500">*</span></label>
+          <select id="p-category" [(ngModel)]="form.categoryId" required
+            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400">
+            <option value="">Seleccionar...</option>
+            @for (c of categories(); track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Gender -->
+      <div>
+        <label for="p-gender" class="block text-sm font-medium text-gray-700 mb-1">Género <span class="text-red-500">*</span></label>
+        <select id="p-gender" [(ngModel)]="form.gender"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400">
+          <option value="MEN">Hombre</option>
+          <option value="WOMEN">Mujer</option>
+          <option value="UNISEX">Unisex</option>
+          <option value="KIDS">Niños</option>
+        </select>
+      </div>
+
+      <!-- Price + Sale price -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="p-price" class="block text-sm font-medium text-gray-700 mb-1">Precio (€) <span class="text-red-500">*</span></label>
+          <input id="p-price" type="number" [(ngModel)]="form.price" min="0" step="0.01" required
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+        </div>
+        <div>
+          <label for="p-sale" class="block text-sm font-medium text-gray-700 mb-1">Precio rebajado (€)</label>
+          <input id="p-sale" type="number" [(ngModel)]="form.salePrice" min="0" step="0.01"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label for="p-desc" class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+        <textarea id="p-desc" [(ngModel)]="form.description" rows="3"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 resize-none"></textarea>
+      </div>
+
+      <!-- Active (edit only) -->
+      @if (panelMode() === 'edit') {
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="form.isActive" class="w-4 h-4 text-indigo-600 rounded" />
+          <span class="text-sm font-medium text-gray-700">Producto activo</span>
+        </label>
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+      <button (click)="closePanel()" [disabled]="saving()"
+        class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-60">
+        Cancelar
+      </button>
+      <button (click)="save()" [disabled]="saving() || !form.name || !form.brandId || !form.categoryId || !form.price"
+        class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors">
+        {{ saving() ? 'Guardando...' : panelMode() === 'create' ? 'Crear producto' : 'Guardar cambios' }}
+      </button>
+    </div>
+  </div>
+}
