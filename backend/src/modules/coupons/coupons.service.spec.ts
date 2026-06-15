@@ -27,7 +27,10 @@ describe('CouponsService', () => {
   beforeEach(async () => {
     mockPrisma.coupon.findUnique.mockReset();
     const module = await Test.createTestingModule({
-      providers: [CouponsService, { provide: PrismaService, useValue: mockPrisma }],
+      providers: [
+        CouponsService,
+        { provide: PrismaService, useValue: mockPrisma },
+      ],
     }).compile();
     service = module.get(CouponsService);
   });
@@ -35,36 +38,60 @@ describe('CouponsService', () => {
   describe('validate', () => {
     it('throws NotFoundException when coupon does not exist', async () => {
       mockPrisma.coupon.findUnique.mockResolvedValue(null);
-      await expect(service.validate({ code: 'INVALID', cartTotal: 100 })).rejects.toThrow(NotFoundException);
+      await expect(
+        service.validate({ code: 'INVALID', cartTotal: 100 }),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('throws NotFoundException when coupon is inactive', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValue(activeCoupon({ isActive: false }));
-      await expect(service.validate({ code: 'SAVE20', cartTotal: 100 })).rejects.toThrow(NotFoundException);
+      mockPrisma.coupon.findUnique.mockResolvedValue(
+        activeCoupon({ isActive: false }),
+      );
+      await expect(
+        service.validate({ code: 'SAVE20', cartTotal: 100 }),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('throws BadRequestException when coupon is not yet valid', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValue(activeCoupon({ validFrom: futureDate }));
-      await expect(service.validate({ code: 'SAVE20', cartTotal: 100 })).rejects.toThrow(BadRequestException);
+      mockPrisma.coupon.findUnique.mockResolvedValue(
+        activeCoupon({ validFrom: futureDate }),
+      );
+      await expect(
+        service.validate({ code: 'SAVE20', cartTotal: 100 }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('throws BadRequestException when coupon has expired', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValue(activeCoupon({ validUntil: pastDate }));
-      await expect(service.validate({ code: 'SAVE20', cartTotal: 100 })).rejects.toThrow(BadRequestException);
+      mockPrisma.coupon.findUnique.mockResolvedValue(
+        activeCoupon({ validUntil: pastDate }),
+      );
+      await expect(
+        service.validate({ code: 'SAVE20', cartTotal: 100 }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('throws BadRequestException when usage limit is reached', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValue(activeCoupon({ maxUses: 100, usedCount: 100 }));
-      await expect(service.validate({ code: 'SAVE20', cartTotal: 100 })).rejects.toThrow(BadRequestException);
+      mockPrisma.coupon.findUnique.mockResolvedValue(
+        activeCoupon({ maxUses: 100, usedCount: 100 }),
+      );
+      await expect(
+        service.validate({ code: 'SAVE20', cartTotal: 100 }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('throws BadRequestException when cart total is below minimum order amount', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValue(activeCoupon({ minOrderAmount: 50 }));
-      await expect(service.validate({ code: 'SAVE20', cartTotal: 30 })).rejects.toThrow(BadRequestException);
+      mockPrisma.coupon.findUnique.mockResolvedValue(
+        activeCoupon({ minOrderAmount: 50 }),
+      );
+      await expect(
+        service.validate({ code: 'SAVE20', cartTotal: 30 }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('calculates percentage discount correctly', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValue(activeCoupon({ type: 'percentage', value: 20 }));
+      mockPrisma.coupon.findUnique.mockResolvedValue(
+        activeCoupon({ type: 'percentage', value: 20 }),
+      );
 
       const result = await service.validate({ code: 'SAVE20', cartTotal: 100 });
 
@@ -73,7 +100,9 @@ describe('CouponsService', () => {
     });
 
     it('calculates fixed discount correctly', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValue(activeCoupon({ type: 'fixed_amount', value: 15 }));
+      mockPrisma.coupon.findUnique.mockResolvedValue(
+        activeCoupon({ type: 'fixed_amount', value: 15 }),
+      );
 
       const result = await service.validate({ code: 'SAVE20', cartTotal: 100 });
 
@@ -82,7 +111,9 @@ describe('CouponsService', () => {
     });
 
     it('caps fixed discount at the cart total to avoid negative totals', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValue(activeCoupon({ type: 'fixed_amount', value: 200 }));
+      mockPrisma.coupon.findUnique.mockResolvedValue(
+        activeCoupon({ type: 'fixed_amount', value: 200 }),
+      );
 
       const result = await service.validate({ code: 'SAVE20', cartTotal: 50 });
 
@@ -90,7 +121,9 @@ describe('CouponsService', () => {
     });
 
     it('accepts coupon when usage count is below the limit', async () => {
-      mockPrisma.coupon.findUnique.mockResolvedValue(activeCoupon({ maxUses: 100, usedCount: 99 }));
+      mockPrisma.coupon.findUnique.mockResolvedValue(
+        activeCoupon({ maxUses: 100, usedCount: 99 }),
+      );
 
       const result = await service.validate({ code: 'SAVE20', cartTotal: 100 });
 
