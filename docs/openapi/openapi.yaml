@@ -1,0 +1,3121 @@
+openapi: 3.1.0
+info:
+  title: BigSchool API
+  version: 0.2.0
+  description: |
+    API REST para la tienda online de zapatillas BigSchool.
+
+    ## Stack
+    - **Backend**: NestJS (Node.js + TypeScript)
+    - **Base de datos**: Supabase (PostgreSQL gestionado)
+    - **Imágenes**: Cloudinary (CDN + transformaciones on-the-fly)
+    - **Pagos**: Stripe
+
+    ## Autenticación
+    Gestionada por **Supabase Auth** en el cliente Angular (email/password y Google OAuth).
+    El cliente obtiene un JWT de Supabase y lo envía como `Authorization: Bearer <token>`.
+    NestJS valida el JWT contra la clave pública de Supabase — no genera tokens propios.
+
+    ## Roles
+    - `USER` — usuario registrado (asignado por defecto)
+    - `ADMIN` — acceso completo incluyendo rutas `/admin/*`
+
+    ## Imágenes (Cloudinary)
+    Todas las URLs de imagen son URLs de Cloudinary.
+    Transformaciones on-the-fly: añadir parámetros en la URL → `f_auto,q_auto,w_400`.
+
+    ## Flujo de pago (Stripe)
+    1. `POST /orders` → crea pedido en estado `pending_payment`
+    2. `POST /payments/intent` → crea PaymentIntent, devuelve `clientSecret`
+    3. Frontend completa pago con Stripe.js
+    4. `POST /webhooks/stripe` → actualiza estado del pedido a `confirmed`
+  contact:
+    email: javiersalvadormarco@gmail.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Desarrollo local
+  - url: https://api.bigschool.com/v1
+    description: Producción
+
+tags:
+  - name: auth
+    description: Sincronización de usuario con Supabase Auth
+  - name: users
+    description: Perfil y datos del usuario autenticado
+  - name: products
+    description: Catálogo de zapatillas (público)
+  - name: categories
+    description: Categorías (público)
+  - name: brands
+    description: Marcas (público)
+  - name: wishlist
+    description: Lista de deseos
+  - name: reviews
+    description: Valoraciones de productos
+  - name: cart
+    description: Carrito de compra
+  - name: coupons
+    description: Cupones de descuento
+  - name: payments
+    description: Pagos con Stripe
+  - name: orders
+    description: Pedidos y checkout
+  - name: returns
+    description: Devoluciones
+  - name: size-guide
+    description: Guía de tallas (público)
+  - name: newsletter
+    description: Boletín de novedades
+  - name: admin
+    description: Panel de administración (requiere rol ADMIN)
+  - name: webhooks
+    description: Webhooks de servicios externos
+
+paths:
+
+  # ===========================================================================
+  # AUTH
+  # ===========================================================================
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Sincronizar usuario Supabase con nuestra BD
+      description: |
+        Llamar tras el primer login. Crea o actualiza el registro del usuario
+        en nuestra base de datos a partir del JWT de Supabase.
+        Registro, login, logout y OAuth con Google se gestionan directamente
+        en el cliente con el SDK de Supabase — no exponen endpoints aquí.
+      operationId: syncAuthUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Usuario sincronizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ===========================================================================
+  # USERS
+  # ===========================================================================
+
+  /users/me:
+    get:
+      tags: [users]
+      summary: Obtener perfil propio
+      operationId: getMyProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    patch:
+      tags: [users]
+      summary: Actualizar perfil propio
+      operationId: updateMyProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/me/addresses:
+    get:
+      tags: [users]
+      summary: Listar mis direcciones de envío
+      operationId: listMyAddresses
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Direcciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Address'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [users]
+      summary: Añadir dirección de envío
+      operationId: createAddress
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+      responses:
+        '201':
+          description: Dirección creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /users/me/addresses/{addressId}:
+    parameters:
+      - $ref: '#/components/parameters/AddressId'
+    patch:
+      tags: [users]
+      summary: Actualizar dirección
+      operationId: updateAddress
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+      responses:
+        '200':
+          description: Dirección actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [users]
+      summary: Eliminar dirección
+      operationId: deleteAddress
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Dirección eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/me/stock-notifications:
+    get:
+      tags: [users]
+      summary: Listar mis suscripciones de disponibilidad de stock
+      operationId: listMyStockNotifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Suscripciones activas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StockNotification'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ===========================================================================
+  # CATEGORIES (público)
+  # ===========================================================================
+
+  /categories:
+    get:
+      tags: [categories]
+      summary: Listar categorías
+      operationId: listCategories
+      responses:
+        '200':
+          description: Categorías
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+  /categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    get:
+      tags: [categories]
+      summary: Detalle de categoría
+      operationId: getCategoryById
+      responses:
+        '200':
+          description: Categoría
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # BRANDS (público)
+  # ===========================================================================
+
+  /brands:
+    get:
+      tags: [brands]
+      summary: Listar marcas
+      operationId: listBrands
+      responses:
+        '200':
+          description: Marcas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Brand'
+
+  /brands/{brandId}:
+    parameters:
+      - $ref: '#/components/parameters/BrandId'
+    get:
+      tags: [brands]
+      summary: Detalle de marca
+      operationId: getBrandById
+      responses:
+        '200':
+          description: Marca
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # PRODUCTS (público)
+  # ===========================================================================
+
+  /products:
+    get:
+      tags: [products]
+      summary: Listar productos con filtros y paginación
+      operationId: listProducts
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: categoryId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: brandId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: gender
+          in: query
+          schema:
+            $ref: '#/components/schemas/Gender'
+        - name: minPrice
+          in: query
+          schema: { type: number, minimum: 0 }
+        - name: maxPrice
+          in: query
+          schema: { type: number }
+        - name: size
+          in: query
+          schema: { type: number }
+          description: Filtrar por talla EU disponible en stock
+        - name: color
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Búsqueda por nombre o descripción
+        - name: onSale
+          in: query
+          schema: { type: boolean }
+          description: Solo productos en oferta
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [price_asc, price_desc, newest, popularity, rating]
+            default: newest
+      responses:
+        '200':
+          description: Productos paginados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductPage'
+
+  /products/{productId}:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+    get:
+      tags: [products]
+      summary: Detalle de producto (con variantes y SEO)
+      operationId: getProductById
+      responses:
+        '200':
+          description: Producto detallado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/{productId}/related:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+    get:
+      tags: [products]
+      summary: Productos relacionados
+      operationId: getRelatedProducts
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 20, default: 8 }
+      responses:
+        '200':
+          description: Productos relacionados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /products/{productId}/reviews:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+    get:
+      tags: [reviews]
+      summary: Listar valoraciones del producto
+      operationId: listProductReviews
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [newest, highest_rating, lowest_rating, most_helpful]
+            default: newest
+      responses:
+        '200':
+          description: Valoraciones paginadas con resumen estadístico
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewPage'
+    post:
+      tags: [reviews]
+      summary: Publicar valoración
+      description: El usuario debe haber comprado el producto (compra verificada).
+      operationId: createReview
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Valoración publicada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /products/{productId}/variants/{variantId}/notify-stock:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+      - $ref: '#/components/parameters/VariantId'
+    post:
+      tags: [products]
+      summary: Suscribirse a notificación de disponibilidad
+      operationId: subscribeStockNotification
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Suscripción creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockNotification'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [products]
+      summary: Cancelar suscripción de disponibilidad
+      operationId: unsubscribeStockNotification
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Suscripción cancelada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # REVIEWS (gestión propia)
+  # ===========================================================================
+
+  /reviews/{reviewId}:
+    parameters:
+      - $ref: '#/components/parameters/ReviewId'
+    patch:
+      tags: [reviews]
+      summary: Editar mi valoración
+      operationId: updateReview
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '200':
+          description: Valoración actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [reviews]
+      summary: Eliminar mi valoración
+      operationId: deleteReview
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Valoración eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # WISHLIST
+  # ===========================================================================
+
+  /users/me/wishlist:
+    get:
+      tags: [wishlist]
+      summary: Obtener mi lista de deseos
+      operationId: getWishlist
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de deseos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WishlistItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [wishlist]
+      summary: Añadir producto a la lista de deseos
+      operationId: addToWishlist
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId]
+              properties:
+                productId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Producto añadido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WishlistItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/me/wishlist/{productId}:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+    delete:
+      tags: [wishlist]
+      summary: Eliminar producto de la lista de deseos
+      operationId: removeFromWishlist
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Eliminado de la lista de deseos
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # SIZE GUIDE (público)
+  # ===========================================================================
+
+  /size-guide:
+    get:
+      tags: [size-guide]
+      summary: Guía de tallas general
+      operationId: getGlobalSizeGuide
+      responses:
+        '200':
+          description: Tabla de conversión EU / US / UK / CM
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SizeGuide'
+
+  /size-guide/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    get:
+      tags: [size-guide]
+      summary: Guía de tallas por categoría
+      operationId: getSizeGuideByCategory
+      responses:
+        '200':
+          description: Guía específica para la categoría
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SizeGuide'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # CART
+  # ===========================================================================
+
+  /cart:
+    get:
+      tags: [cart]
+      summary: Obtener carrito actual
+      operationId: getCart
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Carrito con ítems, totales y cupón aplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags: [cart]
+      summary: Vaciar carrito
+      operationId: clearCart
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Carrito vaciado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /cart/items:
+    post:
+      tags: [cart]
+      summary: Añadir ítem al carrito
+      operationId: addCartItem
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+      responses:
+        '200':
+          description: Carrito actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cart/items/{itemId}:
+    parameters:
+      - $ref: '#/components/parameters/CartItemId'
+    patch:
+      tags: [cart]
+      summary: Actualizar cantidad de un ítem
+      operationId: updateCartItem
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCartItemRequest'
+      responses:
+        '200':
+          description: Carrito actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [cart]
+      summary: Eliminar ítem del carrito
+      operationId: removeCartItem
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Carrito actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # COUPONS
+  # ===========================================================================
+
+  /coupons/validate:
+    post:
+      tags: [coupons]
+      summary: Validar cupón de descuento
+      operationId: validateCoupon
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateCouponRequest'
+      responses:
+        '200':
+          description: Resultado de validación (válido o no, con motivo)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateCouponResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ===========================================================================
+  # PAYMENTS (Stripe)
+  # ===========================================================================
+
+  /payments/intent:
+    post:
+      tags: [payments]
+      summary: Crear PaymentIntent de Stripe
+      description: |
+        Crea un PaymentIntent en Stripe asociado al pedido indicado.
+        El cliente usa el `clientSecret` con Stripe.js para completar el pago.
+        Al confirmar el pago, Stripe notifica mediante webhook a `POST /webhooks/stripe`.
+      operationId: createPaymentIntent
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentIntentRequest'
+      responses:
+        '201':
+          description: PaymentIntent creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # ORDERS
+  # ===========================================================================
+
+  /orders:
+    get:
+      tags: [orders]
+      summary: Listar mis pedidos
+      operationId: listMyOrders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+      responses:
+        '200':
+          description: Pedidos paginados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [orders]
+      summary: Crear pedido (checkout)
+      description: Crea pedido en estado `pending_payment`. A continuación llamar a `POST /payments/intent`.
+      operationId: createOrder
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Pedido creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /orders/{orderId}:
+    parameters:
+      - $ref: '#/components/parameters/OrderId'
+    get:
+      tags: [orders]
+      summary: Detalle de pedido
+      operationId: getOrderById
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pedido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /orders/{orderId}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/OrderId'
+    post:
+      tags: [orders]
+      summary: Cancelar pedido
+      operationId: cancelOrder
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pedido cancelado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # RETURNS
+  # ===========================================================================
+
+  /orders/{orderId}/return:
+    parameters:
+      - $ref: '#/components/parameters/OrderId'
+    get:
+      tags: [returns]
+      summary: Ver devolución asociada al pedido
+      operationId: getOrderReturn
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Devolución
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Return'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [returns]
+      summary: Solicitar devolución
+      description: Disponible hasta 14 días tras la entrega (derecho de desistimiento UE).
+      operationId: createReturn
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReturnRequest'
+      responses:
+        '201':
+          description: Devolución solicitada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Return'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # ===========================================================================
+  # NEWSLETTER
+  # ===========================================================================
+
+  /newsletter/subscribe:
+    post:
+      tags: [newsletter]
+      summary: Suscribirse al boletín
+      operationId: subscribeNewsletter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewsletterRequest'
+      responses:
+        '201':
+          description: Suscripción registrada (pendiente confirmación por email)
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /newsletter/unsubscribe:
+    post:
+      tags: [newsletter]
+      summary: Desuscribirse del boletín
+      operationId: unsubscribeNewsletter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewsletterRequest'
+      responses:
+        '204':
+          description: Desuscripción confirmada
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # WEBHOOKS
+  # ===========================================================================
+
+  /webhooks/stripe:
+    post:
+      tags: [webhooks]
+      summary: Webhook de Stripe
+      description: |
+        Recibe eventos de Stripe. La autenticación se realiza verificando
+        el header `Stripe-Signature` con el webhook secret — no requiere JWT.
+
+        Eventos procesados:
+        - `payment_intent.succeeded` → pedido pasa a `confirmed`
+        - `payment_intent.payment_failed` → pedido pasa a `payment_failed`
+        - `charge.refunded` → devolución pasa a `refunded`
+      operationId: stripeWebhook
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Evento de Stripe (estructura variable según tipo)
+      responses:
+        '200':
+          description: Evento procesado correctamente
+        '400':
+          description: Firma inválida o evento no reconocido
+
+  # ===========================================================================
+  # ADMIN — PRODUCTS
+  # ===========================================================================
+
+  /admin/products:
+    get:
+      tags: [admin]
+      summary: '[Admin] Listar todos los productos'
+      operationId: adminListProducts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: isActive
+          in: query
+          schema: { type: boolean }
+        - name: categoryId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: brandId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: lowStock
+          in: query
+          schema: { type: boolean }
+          description: Solo productos con alguna variante con stock <= 5
+      responses:
+        '200':
+          description: Productos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminProductPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [admin]
+      summary: '[Admin] Crear producto'
+      operationId: adminCreateProduct
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminProductDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /admin/products/{productId}:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+    get:
+      tags: [admin]
+      summary: '[Admin] Detalle de producto'
+      operationId: adminGetProduct
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Producto con métricas de ventas y stock
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminProductDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [admin]
+      summary: '[Admin] Actualizar producto'
+      operationId: adminUpdateProduct
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminProductDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [admin]
+      summary: '[Admin] Desactivar producto (soft delete)'
+      operationId: adminDeleteProduct
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Producto desactivado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /admin/products/{productId}/variants:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+    post:
+      tags: [admin]
+      summary: '[Admin] Añadir variante a un producto'
+      operationId: adminCreateVariant
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVariantRequest'
+      responses:
+        '201':
+          description: Variante creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /admin/products/{productId}/variants/{variantId}:
+    parameters:
+      - $ref: '#/components/parameters/ProductId'
+      - $ref: '#/components/parameters/VariantId'
+    patch:
+      tags: [admin]
+      summary: '[Admin] Actualizar variante (stock, imágenes, precio)'
+      operationId: adminUpdateVariant
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVariantRequest'
+      responses:
+        '200':
+          description: Variante actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [admin]
+      summary: '[Admin] Eliminar variante'
+      operationId: adminDeleteVariant
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Variante eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ADMIN — CATEGORIES
+
+  /admin/categories:
+    get:
+      tags: [admin]
+      summary: '[Admin] Listar categorías'
+      operationId: adminListCategories
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Categorías
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [admin]
+      summary: '[Admin] Crear categoría'
+      operationId: adminCreateCategory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: Categoría creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /admin/categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    patch:
+      tags: [admin]
+      summary: '[Admin] Actualizar categoría'
+      operationId: adminUpdateCategory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '200':
+          description: Categoría actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [admin]
+      summary: '[Admin] Eliminar categoría'
+      operationId: adminDeleteCategory
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Categoría eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ADMIN — BRANDS
+
+  /admin/brands:
+    get:
+      tags: [admin]
+      summary: '[Admin] Listar marcas'
+      operationId: adminListBrands
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Marcas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Brand'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [admin]
+      summary: '[Admin] Crear marca'
+      operationId: adminCreateBrand
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBrandRequest'
+      responses:
+        '201':
+          description: Marca creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /admin/brands/{brandId}:
+    parameters:
+      - $ref: '#/components/parameters/BrandId'
+    patch:
+      tags: [admin]
+      summary: '[Admin] Actualizar marca'
+      operationId: adminUpdateBrand
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBrandRequest'
+      responses:
+        '200':
+          description: Marca actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brand'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [admin]
+      summary: '[Admin] Eliminar marca'
+      operationId: adminDeleteBrand
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Marca eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ADMIN — ORDERS
+
+  /admin/orders:
+    get:
+      tags: [admin]
+      summary: '[Admin] Listar todos los pedidos'
+      operationId: adminListOrders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+        - name: userId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date }
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Buscar por email de usuario o ID de pedido
+      responses:
+        '200':
+          description: Pedidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOrderPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/orders/{orderId}:
+    parameters:
+      - $ref: '#/components/parameters/OrderId'
+    get:
+      tags: [admin]
+      summary: '[Admin] Detalle de pedido'
+      operationId: adminGetOrder
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pedido con datos del usuario y Stripe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOrder'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [admin]
+      summary: '[Admin] Actualizar estado y/o tracking del pedido'
+      operationId: adminUpdateOrder
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateOrderRequest'
+      responses:
+        '200':
+          description: Pedido actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOrder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ADMIN — COUPONS
+
+  /admin/coupons:
+    get:
+      tags: [admin]
+      summary: '[Admin] Listar cupones'
+      operationId: adminListCoupons
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: isActive
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Cupones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Coupon'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [admin]
+      summary: '[Admin] Crear cupón'
+      operationId: adminCreateCoupon
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCouponRequest'
+      responses:
+        '201':
+          description: Cupón creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /admin/coupons/{couponId}:
+    parameters:
+      - $ref: '#/components/parameters/CouponId'
+    get:
+      tags: [admin]
+      summary: '[Admin] Detalle de cupón'
+      operationId: adminGetCoupon
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cupón
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [admin]
+      summary: '[Admin] Actualizar cupón'
+      operationId: adminUpdateCoupon
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCouponRequest'
+      responses:
+        '200':
+          description: Cupón actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coupon'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [admin]
+      summary: '[Admin] Eliminar cupón'
+      operationId: adminDeleteCoupon
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Cupón eliminado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ADMIN — USERS
+
+  /admin/users:
+    get:
+      tags: [admin]
+      summary: '[Admin] Listar usuarios'
+      operationId: adminListUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserRole'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserStatus'
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Buscar por nombre o email
+      responses:
+        '200':
+          description: Usuarios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/users/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/UserId'
+    get:
+      tags: [admin]
+      summary: '[Admin] Detalle de usuario'
+      operationId: adminGetUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Usuario con estadísticas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [admin]
+      summary: '[Admin] Cambiar rol o estado del usuario'
+      operationId: adminUpdateUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateUserRequest'
+      responses:
+        '200':
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ADMIN — RETURNS
+
+  /admin/returns:
+    get:
+      tags: [admin]
+      summary: '[Admin] Listar devoluciones'
+      operationId: adminListReturns
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReturnStatus'
+      responses:
+        '200':
+          description: Devoluciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/returns/{returnId}:
+    parameters:
+      - $ref: '#/components/parameters/ReturnId'
+    get:
+      tags: [admin]
+      summary: '[Admin] Detalle de devolución'
+      operationId: adminGetReturn
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Devolución
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Return'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [admin]
+      summary: '[Admin] Aprobar, rechazar o completar devolución'
+      operationId: adminUpdateReturn
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUpdateReturnRequest'
+      responses:
+        '200':
+          description: Devolución actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Return'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ADMIN — ANALYTICS
+
+  /admin/analytics/summary:
+    get:
+      tags: [admin]
+      summary: '[Admin] Resumen de métricas del negocio'
+      operationId: adminGetAnalyticsSummary
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, week, month, year]
+            default: month
+      responses:
+        '200':
+          description: Métricas del período
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+# ===========================================================================
+# COMPONENTS
+# ===========================================================================
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT emitido por Supabase Auth
+
+  parameters:
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    VariantId:
+      name: variantId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    BrandId:
+      name: brandId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    CartItemId:
+      name: itemId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    AddressId:
+      name: addressId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ReviewId:
+      name: reviewId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    CouponId:
+      name: couponId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ReturnId:
+      name: returnId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Petición incorrecta
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Sin permisos suficientes
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Conflicto de recursos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Error de validación
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+
+  schemas:
+
+    # ─── ENUMS ──────────────────────────────────────────────────────────────
+
+    Gender:
+      type: string
+      enum: [man, woman, unisex, kids]
+
+    OrderStatus:
+      type: string
+      enum:
+        - pending_payment
+        - confirmed
+        - processing
+        - shipped
+        - delivered
+        - cancelled
+        - payment_failed
+        - return_requested
+        - return_approved
+        - refunded
+
+    ReturnStatus:
+      type: string
+      enum: [requested, approved, rejected, completed, refunded]
+
+    UserRole:
+      type: string
+      enum: [USER, ADMIN]
+
+    UserStatus:
+      type: string
+      enum: [active, suspended]
+
+    CouponType:
+      type: string
+      enum: [percentage, fixed_amount]
+
+    # ─── USER ───────────────────────────────────────────────────────────────
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+        lastName:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+          nullable: true
+
+    AdminUser:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            orderCount:
+              type: integer
+            totalSpent:
+              type: number
+              format: float
+
+    AdminUpdateUserRequest:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+
+    AdminUserPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUser'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ─── ADDRESS ────────────────────────────────────────────────────────────
+
+    Address:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        alias:
+          type: string
+          example: Casa
+        street:
+          type: string
+        city:
+          type: string
+        province:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+          example: ES
+        isDefault:
+          type: boolean
+
+    AddressRequest:
+      type: object
+      required: [alias, street, city, province, postalCode, country]
+      properties:
+        alias:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        province:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+        isDefault:
+          type: boolean
+          default: false
+
+    # ─── CATEGORY ───────────────────────────────────────────────────────────
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+        productCount:
+          type: integer
+
+    CreateCategoryRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    # ─── BRAND ──────────────────────────────────────────────────────────────
+
+    Brand:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        logoUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    CreateBrandRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        logoUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    # ─── PRODUCT ────────────────────────────────────────────────────────────
+
+    ProductVariant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        size:
+          type: number
+          description: Talla EU
+        color:
+          type: string
+        colorHex:
+          type: string
+          example: '#1a1a1a'
+        stock:
+          type: integer
+          minimum: 0
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: URLs de Cloudinary
+
+    ProductSeo:
+      type: object
+      properties:
+        metaTitle:
+          type: string
+          maxLength: 60
+        metaDescription:
+          type: string
+          maxLength: 160
+        canonicalUrl:
+          type: string
+          format: uri
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        brand:
+          $ref: '#/components/schemas/Brand'
+        category:
+          $ref: '#/components/schemas/Category'
+        gender:
+          $ref: '#/components/schemas/Gender'
+        price:
+          type: number
+          format: float
+          description: Precio base en EUR
+        salePrice:
+          type: number
+          format: float
+          nullable: true
+          description: Precio de oferta en EUR
+        saleEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        thumbnailUrl:
+          type: string
+          format: uri
+        averageRating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          nullable: true
+        reviewCount:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ProductDetail:
+      allOf:
+        - $ref: '#/components/schemas/Product'
+        - type: object
+          properties:
+            description:
+              type: string
+            variants:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductVariant'
+            seo:
+              $ref: '#/components/schemas/ProductSeo'
+
+    AdminProductDetail:
+      allOf:
+        - $ref: '#/components/schemas/ProductDetail'
+        - type: object
+          properties:
+            totalStock:
+              type: integer
+            totalSold:
+              type: integer
+
+    ProductPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    AdminProductPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminProductDetail'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    CreateProductRequest:
+      type: object
+      required: [name, brandId, categoryId, gender, price, description]
+      properties:
+        name:
+          type: string
+        brandId:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        gender:
+          $ref: '#/components/schemas/Gender'
+        price:
+          type: number
+          format: float
+          minimum: 0
+        salePrice:
+          type: number
+          format: float
+          nullable: true
+        saleEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        description:
+          type: string
+        thumbnailUrl:
+          type: string
+          format: uri
+        seo:
+          $ref: '#/components/schemas/ProductSeo'
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateVariantRequest'
+          description: Variantes iniciales (opcional, se pueden añadir después)
+
+    UpdateProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        brandId:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        gender:
+          $ref: '#/components/schemas/Gender'
+        price:
+          type: number
+          format: float
+          minimum: 0
+        salePrice:
+          type: number
+          format: float
+          nullable: true
+        saleEndsAt:
+          type: string
+          format: date-time
+          nullable: true
+        description:
+          type: string
+        thumbnailUrl:
+          type: string
+          format: uri
+        isActive:
+          type: boolean
+        seo:
+          $ref: '#/components/schemas/ProductSeo'
+
+    CreateVariantRequest:
+      type: object
+      required: [sku, size, color, stock]
+      properties:
+        sku:
+          type: string
+        size:
+          type: number
+        color:
+          type: string
+        colorHex:
+          type: string
+        stock:
+          type: integer
+          minimum: 0
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+
+    UpdateVariantRequest:
+      type: object
+      properties:
+        stock:
+          type: integer
+          minimum: 0
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        colorHex:
+          type: string
+
+    # ─── WISHLIST ────────────────────────────────────────────────────────────
+
+    WishlistItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        product:
+          $ref: '#/components/schemas/Product'
+        addedAt:
+          type: string
+          format: date-time
+
+    # ─── REVIEWS ────────────────────────────────────────────────────────────
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            firstName:
+              type: string
+            avatarUrl:
+              type: string
+              format: uri
+              nullable: true
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        title:
+          type: string
+          nullable: true
+        body:
+          type: string
+        verifiedPurchase:
+          type: boolean
+        helpfulCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateReviewRequest:
+      type: object
+      required: [rating, body]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        title:
+          type: string
+          maxLength: 100
+          nullable: true
+        body:
+          type: string
+          minLength: 10
+          maxLength: 2000
+
+    ReviewPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        summary:
+          type: object
+          properties:
+            averageRating:
+              type: number
+              format: float
+            totalCount:
+              type: integer
+            distribution:
+              type: object
+              description: 'Conteo por estrella: { "1": 5, "2": 3, "3": 10, "4": 22, "5": 48 }'
+              additionalProperties:
+                type: integer
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ─── STOCK NOTIFICATIONS ─────────────────────────────────────────────────
+
+    StockNotification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        variantId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        size:
+          type: number
+        color:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # ─── SIZE GUIDE ──────────────────────────────────────────────────────────
+
+    SizeGuideEntry:
+      type: object
+      properties:
+        eu:
+          type: number
+        us:
+          type: number
+        uk:
+          type: number
+        cm:
+          type: number
+
+    SizeGuide:
+      type: object
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+        categoryName:
+          type: string
+          nullable: true
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SizeGuideEntry'
+
+    # ─── CART ────────────────────────────────────────────────────────────────
+
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        variant:
+          $ref: '#/components/schemas/ProductVariant'
+        product:
+          $ref: '#/components/schemas/Product'
+        quantity:
+          type: integer
+          minimum: 1
+        unitPrice:
+          type: number
+          format: float
+        subtotal:
+          type: number
+          format: float
+
+    Cart:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        itemCount:
+          type: integer
+        subtotal:
+          type: number
+          format: float
+        discount:
+          type: number
+          format: float
+          description: Descuento en EUR aplicado por cupón
+        total:
+          type: number
+          format: float
+        appliedCoupon:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Coupon'
+        updatedAt:
+          type: string
+          format: date-time
+
+    AddCartItemRequest:
+      type: object
+      required: [variantId, quantity]
+      properties:
+        variantId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+
+    UpdateCartItemRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+
+    # ─── COUPONS ─────────────────────────────────────────────────────────────
+
+    Coupon:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          example: SUMMER20
+        type:
+          $ref: '#/components/schemas/CouponType'
+        value:
+          type: number
+          description: Porcentaje (0-100) o importe fijo en EUR según `type`
+        minOrderAmount:
+          type: number
+          format: float
+          nullable: true
+        maxUses:
+          type: integer
+          nullable: true
+          description: null = usos ilimitados
+        usedCount:
+          type: integer
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+
+    ValidateCouponRequest:
+      type: object
+      required: [code, orderAmount]
+      properties:
+        code:
+          type: string
+        orderAmount:
+          type: number
+          format: float
+          description: Importe del pedido antes de aplicar el descuento
+
+    ValidateCouponResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        coupon:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Coupon'
+        discountAmount:
+          type: number
+          format: float
+          description: Importe a descontar en EUR
+        message:
+          type: string
+          nullable: true
+          description: Motivo si el cupón no es válido
+
+    CreateCouponRequest:
+      type: object
+      required: [code, type, value, validFrom]
+      properties:
+        code:
+          type: string
+        type:
+          $ref: '#/components/schemas/CouponType'
+        value:
+          type: number
+        minOrderAmount:
+          type: number
+          nullable: true
+        maxUses:
+          type: integer
+          nullable: true
+        validFrom:
+          type: string
+          format: date-time
+        validUntil:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+          default: true
+
+    UpdateCouponRequest:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+        validUntil:
+          type: string
+          format: date-time
+          nullable: true
+        maxUses:
+          type: integer
+          nullable: true
+
+    # ─── PAYMENTS ────────────────────────────────────────────────────────────
+
+    CreatePaymentIntentRequest:
+      type: object
+      required: [orderId]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+
+    PaymentIntentResponse:
+      type: object
+      properties:
+        clientSecret:
+          type: string
+          description: Usado por Stripe.js en el frontend para confirmar el pago
+        paymentIntentId:
+          type: string
+        amount:
+          type: integer
+          description: Importe en céntimos de EUR
+        currency:
+          type: string
+          example: eur
+
+    # ─── ORDERS ──────────────────────────────────────────────────────────────
+
+    Tracking:
+      type: object
+      properties:
+        carrier:
+          type: string
+          example: SEUR
+        trackingNumber:
+          type: string
+        trackingUrl:
+          type: string
+          format: uri
+          nullable: true
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        productSlug:
+          type: string
+        variantSku:
+          type: string
+        size:
+          type: number
+        color:
+          type: string
+        thumbnailUrl:
+          type: string
+          format: uri
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: float
+        subtotal:
+          type: number
+          format: float
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        subtotal:
+          type: number
+          format: float
+        discount:
+          type: number
+          format: float
+        shippingCost:
+          type: number
+          format: float
+        total:
+          type: number
+          format: float
+        couponCode:
+          type: string
+          nullable: true
+        tracking:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Tracking'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AdminOrder:
+      allOf:
+        - $ref: '#/components/schemas/Order'
+        - type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+                  format: email
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+            stripePaymentIntentId:
+              type: string
+              nullable: true
+            adminNotes:
+              type: string
+              nullable: true
+
+    AdminUpdateOrderRequest:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        tracking:
+          $ref: '#/components/schemas/Tracking'
+        adminNotes:
+          type: string
+          nullable: true
+
+    OrderPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    AdminOrderPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminOrder'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    CreateOrderRequest:
+      type: object
+      required: [addressId]
+      properties:
+        addressId:
+          type: string
+          format: uuid
+        couponCode:
+          type: string
+          nullable: true
+
+    # ─── RETURNS ─────────────────────────────────────────────────────────────
+
+    ReturnItem:
+      type: object
+      properties:
+        orderItemId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+
+    Return:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ReturnStatus'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReturnItem'
+        reason:
+          type: string
+        adminNotes:
+          type: string
+          nullable: true
+        refundAmount:
+          type: number
+          format: float
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateReturnRequest:
+      type: object
+      required: [items, reason]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [orderItemId, quantity]
+            properties:
+              orderItemId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+                minimum: 1
+              reason:
+                type: string
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+
+    AdminUpdateReturnRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/ReturnStatus'
+        adminNotes:
+          type: string
+          nullable: true
+        refundAmount:
+          type: number
+          format: float
+          nullable: true
+
+    ReturnPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Return'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ─── NEWSLETTER ──────────────────────────────────────────────────────────
+
+    NewsletterRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    # ─── ANALYTICS ───────────────────────────────────────────────────────────
+
+    AnalyticsSummary:
+      type: object
+      properties:
+        period:
+          type: string
+          enum: [today, week, month, year]
+        revenue:
+          type: number
+          format: float
+        orderCount:
+          type: integer
+        averageOrderValue:
+          type: number
+          format: float
+        newUsers:
+          type: integer
+        pendingOrders:
+          type: integer
+        pendingReturns:
+          type: integer
+        lowStockVariants:
+          type: integer
+          description: Variantes con stock <= 5
+        topProducts:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+                format: uuid
+              name:
+                type: string
+              thumbnailUrl:
+                type: string
+                format: uri
+              unitsSold:
+                type: integer
+              revenue:
+                type: number
+                format: float
+
+    # ─── SHARED ──────────────────────────────────────────────────────────────
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+        message:
+          type: string
+        error:
+          type: string
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 422
+        message:
+          type: array
+          items:
+            type: string
+        error:
+          type: string
+          example: Unprocessable Entity
