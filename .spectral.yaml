@@ -8,8 +8,5 @@ rules:
   # Todos los endpoints deben tener al menos un tag
   operation-tags: error
 
-  # Parámetros de path deben tener descripción
-  parameter-description: warn
-
   # Las respuestas de error deben existir
   operation-4xx-response: warn

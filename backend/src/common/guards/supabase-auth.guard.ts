@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { createClient } from '@supabase/supabase-js';
+import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 @Injectable()
@@ -24,7 +25,7 @@ export class SupabaseAuthGuard implements CanActivate {
     ]);
     if (isPublic) return true;
 
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractToken(request);
     if (!token) throw new UnauthorizedException();
 
@@ -39,7 +40,7 @@ export class SupabaseAuthGuard implements CanActivate {
     return true;
   }
 
-  private extractToken(request: any): string | undefined {
+  private extractToken(request: Request): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
