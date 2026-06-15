@@ -46,5 +46,9 @@ export const routes: Routes = [
     loadComponent: () => import('./layouts/admin-layout/admin-layout').then((m) => m.AdminLayout),
     loadChildren: () => import('./features/admin/admin.routes').then((m) => m.adminRoutes),
   },
+  {
+    path: 'auth/callback',
+    loadComponent: () => import('./features/auth/callback/callback').then((m) => m.AuthCallbackPage),
+  },
   { path: '**', redirectTo: '' },
 ];
