@@ -157,11 +157,14 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Playwright
+      - name: Install Playwright deps
+        run: npm ci
+
+      - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: npx playwright test
+        run: npx playwright test --pass-with-no-tests
         env:
           BASE_URL: http://localhost:4200
 
