@@ -27,17 +27,26 @@ const mockPrisma = {
 
 const supabaseUser = { id: 'supa-uid' } as never;
 const dbUser = { id: USER_ID };
-const emptyCart = { id: CART_ID, userId: USER_ID, couponId: null, coupon: null, items: [] };
+const emptyCart = {
+  id: CART_ID,
+  userId: USER_ID,
+  couponId: null,
+  coupon: null,
+  items: [],
+};
 
 describe('CartService', () => {
   let service: CartService;
 
   beforeEach(async () => {
     Object.values(mockPrisma).forEach((model) =>
-      Object.values(model).forEach((fn) => (fn as jest.Mock).mockReset()),
+      Object.values(model).forEach((fn) => fn.mockReset()),
     );
     const module = await Test.createTestingModule({
-      providers: [CartService, { provide: PrismaService, useValue: mockPrisma }],
+      providers: [
+        CartService,
+        { provide: PrismaService, useValue: mockPrisma },
+      ],
     }).compile();
     service = module.get(CartService);
   });
@@ -83,10 +92,14 @@ describe('CartService', () => {
         product: { price: 100, salePrice: null, saleEndsAt: null },
       });
 
-      await service.addItem(supabaseUser, { variantId: VARIANT_ID, quantity: 2 });
+      await service.addItem(supabaseUser, {
+        variantId: VARIANT_ID,
+        quantity: 2,
+      });
 
       expect(mockPrisma.cartItem.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({ variantId: VARIANT_ID, quantity: 2 }),
         }),
       );
@@ -98,13 +111,20 @@ describe('CartService', () => {
         stock: 10,
         product: { price: 100, salePrice: null, saleEndsAt: null },
       });
-      mockPrisma.cartItem.findUnique.mockResolvedValue({ id: 'item-1', quantity: 3 });
+      mockPrisma.cartItem.findUnique.mockResolvedValue({
+        id: 'item-1',
+        quantity: 3,
+      });
 
-      await service.addItem(supabaseUser, { variantId: VARIANT_ID, quantity: 2 });
+      await service.addItem(supabaseUser, {
+        variantId: VARIANT_ID,
+        quantity: 2,
+      });
 
       expect(mockPrisma.cartItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'item-1' },
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({ quantity: 5 }),
         }),
       );
@@ -118,10 +138,14 @@ describe('CartService', () => {
         product: { price: 100, salePrice: 80, saleEndsAt: future },
       });
 
-      await service.addItem(supabaseUser, { variantId: VARIANT_ID, quantity: 1 });
+      await service.addItem(supabaseUser, {
+        variantId: VARIANT_ID,
+        quantity: 1,
+      });
 
       expect(mockPrisma.cartItem.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({ unitPrice: 80 }),
         }),
       );
@@ -133,7 +157,10 @@ describe('CartService', () => {
         stock: 4,
         product: { price: 100, salePrice: null, saleEndsAt: null },
       });
-      mockPrisma.cartItem.findUnique.mockResolvedValue({ id: 'item-1', quantity: 3 });
+      mockPrisma.cartItem.findUnique.mockResolvedValue({
+        id: 'item-1',
+        quantity: 3,
+      });
 
       await expect(
         service.addItem(supabaseUser, { variantId: VARIANT_ID, quantity: 2 }),
@@ -144,7 +171,9 @@ describe('CartService', () => {
   describe('getCart', () => {
     it('throws NotFoundException when user is not in the DB', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
-      await expect(service.getCart(supabaseUser)).rejects.toThrow(NotFoundException);
+      await expect(service.getCart(supabaseUser)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('upserts a cart when the user has none and returns it', async () => {
