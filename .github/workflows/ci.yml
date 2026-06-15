@@ -149,6 +149,13 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [backend, frontend]
 
+    env:
+      BASE_URL: http://localhost:4200
+      NG_APP_SUPABASE_URL: https://test.supabase.co
+      NG_APP_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlc3QifQ.test
+      NG_APP_CLOUDINARY_CLOUD_NAME: test
+      NG_APP_STRIPE_PUBLISHABLE_KEY: pk_test_fake
+
     steps:
       - uses: actions/checkout@v4
 
@@ -157,16 +164,18 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Playwright deps
+      - name: Install root deps (Playwright)
         run: npm ci
+
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: npx playwright test --pass-with-no-tests
-        env:
-          BASE_URL: http://localhost:4200
+        run: npx playwright test
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
