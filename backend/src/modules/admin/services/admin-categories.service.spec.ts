@@ -13,7 +13,15 @@ const mockPrisma = {
   },
 };
 
-function makeDbCategory(overrides: Partial<{ id: string; name: string; slug: string; imageUrl: string | null; productCount: number }> = {}) {
+function makeDbCategory(
+  overrides: Partial<{
+    id: string;
+    name: string;
+    slug: string;
+    imageUrl: string | null;
+    productCount: number;
+  }> = {},
+) {
   const productCount = overrides.productCount ?? 3;
   return {
     id: overrides.id ?? 'cat-1',
@@ -41,7 +49,9 @@ describe('AdminCategoriesService', () => {
 
   describe('findAll', () => {
     it('returns categories with productCount mapped from _count', async () => {
-      mockPrisma.category.findMany.mockResolvedValue([makeDbCategory({ productCount: 5 })]);
+      mockPrisma.category.findMany.mockResolvedValue([
+        makeDbCategory({ productCount: 5 }),
+      ]);
 
       const result = await service.findAll();
 
@@ -76,7 +86,9 @@ describe('AdminCategoriesService', () => {
 
     it('slugifies names with spaces and accents', async () => {
       mockPrisma.category.findUnique.mockResolvedValue(null);
-      mockPrisma.category.create.mockResolvedValue(makeDbCategory({ name: 'Zapatillas Niños', slug: 'zapatillas-ninos' }));
+      mockPrisma.category.create.mockResolvedValue(
+        makeDbCategory({ name: 'Zapatillas Niños', slug: 'zapatillas-ninos' }),
+      );
 
       await service.create({ name: 'Zapatillas Niños' });
 
@@ -90,13 +102,17 @@ describe('AdminCategoriesService', () => {
 
     it('throws ConflictException when slug already exists', async () => {
       mockPrisma.category.findUnique.mockResolvedValue(makeDbCategory());
-      await expect(service.create({ name: 'Sneakers' })).rejects.toThrow(ConflictException);
+      await expect(service.create({ name: 'Sneakers' })).rejects.toThrow(
+        ConflictException,
+      );
       expect(mockPrisma.category.create).not.toHaveBeenCalled();
     });
 
     it('returns productCount from created category', async () => {
       mockPrisma.category.findUnique.mockResolvedValue(null);
-      mockPrisma.category.create.mockResolvedValue(makeDbCategory({ productCount: 0 }));
+      mockPrisma.category.create.mockResolvedValue(
+        makeDbCategory({ productCount: 0 }),
+      );
 
       const result = await service.create({ name: 'Sneakers' });
 
@@ -121,13 +137,17 @@ describe('AdminCategoriesService', () => {
   describe('update', () => {
     it('throws NotFoundException when category does not exist', async () => {
       mockPrisma.category.findUnique.mockResolvedValue(null);
-      await expect(service.update('missing', { name: 'Running' })).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update('missing', { name: 'Running' }),
+      ).rejects.toThrow(NotFoundException);
       expect(mockPrisma.category.update).not.toHaveBeenCalled();
     });
 
     it('updates name and regenerates slug', async () => {
       mockPrisma.category.findUnique.mockResolvedValue(makeDbCategory());
-      mockPrisma.category.update.mockResolvedValue(makeDbCategory({ name: 'Running', slug: 'running' }));
+      mockPrisma.category.update.mockResolvedValue(
+        makeDbCategory({ name: 'Running', slug: 'running' }),
+      );
 
       const result = await service.update('cat-1', { name: 'Running' });
 
@@ -142,9 +162,12 @@ describe('AdminCategoriesService', () => {
     });
 
     it('updates imageUrl when provided', async () => {
-      const imageUrl = 'https://res.cloudinary.com/test/image/upload/running.jpg';
+      const imageUrl =
+        'https://res.cloudinary.com/test/image/upload/running.jpg';
       mockPrisma.category.findUnique.mockResolvedValue(makeDbCategory());
-      mockPrisma.category.update.mockResolvedValue(makeDbCategory({ imageUrl }));
+      mockPrisma.category.update.mockResolvedValue(
+        makeDbCategory({ imageUrl }),
+      );
 
       await service.update('cat-1', { name: 'Sneakers', imageUrl });
 
@@ -162,13 +185,19 @@ describe('AdminCategoriesService', () => {
 
       await service.update('cat-1', { name: 'Sneakers' });
 
-      const updateCall = mockPrisma.category.update.mock.calls[0][0] as { data: Record<string, unknown> };
-      expect(updateCall.data).not.toHaveProperty('imageUrl');
+      expect(mockPrisma.category.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          data: expect.not.objectContaining({ imageUrl: expect.anything() }),
+        }),
+      );
     });
 
     it('returns productCount in updated result', async () => {
       mockPrisma.category.findUnique.mockResolvedValue(makeDbCategory());
-      mockPrisma.category.update.mockResolvedValue(makeDbCategory({ productCount: 7 }));
+      mockPrisma.category.update.mockResolvedValue(
+        makeDbCategory({ productCount: 7 }),
+      );
 
       const result = await service.update('cat-1', { name: 'Sneakers' });
 
@@ -179,7 +208,9 @@ describe('AdminCategoriesService', () => {
   describe('remove', () => {
     it('throws NotFoundException when category does not exist', async () => {
       mockPrisma.category.findUnique.mockResolvedValue(null);
-      await expect(service.remove('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.remove('missing')).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockPrisma.category.delete).not.toHaveBeenCalled();
     });
 
@@ -189,7 +220,9 @@ describe('AdminCategoriesService', () => {
 
       await service.remove('cat-1');
 
-      expect(mockPrisma.category.delete).toHaveBeenCalledWith({ where: { id: 'cat-1' } });
+      expect(mockPrisma.category.delete).toHaveBeenCalledWith({
+        where: { id: 'cat-1' },
+      });
     });
   });
 });

@@ -52,7 +52,10 @@ describe('AdminBrandsService', () => {
       mockPrisma.brand.findUnique.mockResolvedValue(null);
       mockPrisma.brand.create.mockResolvedValue(baseBrand);
 
-      const result = await service.create({ name: 'Nike', logoUrl: baseBrand.logoUrl });
+      const result = await service.create({
+        name: 'Nike',
+        logoUrl: baseBrand.logoUrl,
+      });
 
       expect(mockPrisma.brand.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -65,7 +68,11 @@ describe('AdminBrandsService', () => {
 
     it('slugifies accented names correctly', async () => {
       mockPrisma.brand.findUnique.mockResolvedValue(null);
-      mockPrisma.brand.create.mockResolvedValue({ ...baseBrand, name: 'Ñoño Sport', slug: 'nono-sport' });
+      mockPrisma.brand.create.mockResolvedValue({
+        ...baseBrand,
+        name: 'Ñoño Sport',
+        slug: 'nono-sport',
+      });
 
       await service.create({ name: 'Ñoño Sport' });
 
@@ -79,13 +86,18 @@ describe('AdminBrandsService', () => {
 
     it('throws ConflictException when slug already exists', async () => {
       mockPrisma.brand.findUnique.mockResolvedValue(baseBrand);
-      await expect(service.create({ name: 'Nike' })).rejects.toThrow(ConflictException);
+      await expect(service.create({ name: 'Nike' })).rejects.toThrow(
+        ConflictException,
+      );
       expect(mockPrisma.brand.create).not.toHaveBeenCalled();
     });
 
     it('stores null logoUrl when not provided', async () => {
       mockPrisma.brand.findUnique.mockResolvedValue(null);
-      mockPrisma.brand.create.mockResolvedValue({ ...baseBrand, logoUrl: null });
+      mockPrisma.brand.create.mockResolvedValue({
+        ...baseBrand,
+        logoUrl: null,
+      });
 
       await service.create({ name: 'Nike' });
 
@@ -101,13 +113,19 @@ describe('AdminBrandsService', () => {
   describe('update', () => {
     it('throws NotFoundException when brand does not exist', async () => {
       mockPrisma.brand.findUnique.mockResolvedValue(null);
-      await expect(service.update('missing', { name: 'Adidas' })).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update('missing', { name: 'Adidas' }),
+      ).rejects.toThrow(NotFoundException);
       expect(mockPrisma.brand.update).not.toHaveBeenCalled();
     });
 
     it('updates name and regenerates slug', async () => {
       mockPrisma.brand.findUnique.mockResolvedValue(baseBrand);
-      mockPrisma.brand.update.mockResolvedValue({ ...baseBrand, name: 'Adidas', slug: 'adidas' });
+      mockPrisma.brand.update.mockResolvedValue({
+        ...baseBrand,
+        name: 'Adidas',
+        slug: 'adidas',
+      });
 
       const result = await service.update('brand-1', { name: 'Adidas' });
 
@@ -124,7 +142,10 @@ describe('AdminBrandsService', () => {
     it('updates logoUrl when provided', async () => {
       const newLogo = 'https://res.cloudinary.com/test/image/upload/adidas.png';
       mockPrisma.brand.findUnique.mockResolvedValue(baseBrand);
-      mockPrisma.brand.update.mockResolvedValue({ ...baseBrand, logoUrl: newLogo });
+      mockPrisma.brand.update.mockResolvedValue({
+        ...baseBrand,
+        logoUrl: newLogo,
+      });
 
       await service.update('brand-1', { name: 'Nike', logoUrl: newLogo });
 
@@ -142,15 +163,21 @@ describe('AdminBrandsService', () => {
 
       await service.update('brand-1', { name: 'Nike' });
 
-      const updateCall = mockPrisma.brand.update.mock.calls[0][0] as { data: Record<string, unknown> };
-      expect(updateCall.data).not.toHaveProperty('logoUrl');
+      expect(mockPrisma.brand.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          data: expect.not.objectContaining({ logoUrl: expect.anything() }),
+        }),
+      );
     });
   });
 
   describe('remove', () => {
     it('throws NotFoundException when brand does not exist', async () => {
       mockPrisma.brand.findUnique.mockResolvedValue(null);
-      await expect(service.remove('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.remove('missing')).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockPrisma.brand.delete).not.toHaveBeenCalled();
     });
 
@@ -160,7 +187,9 @@ describe('AdminBrandsService', () => {
 
       await service.remove('brand-1');
 
-      expect(mockPrisma.brand.delete).toHaveBeenCalledWith({ where: { id: 'brand-1' } });
+      expect(mockPrisma.brand.delete).toHaveBeenCalledWith({
+        where: { id: 'brand-1' },
+      });
     });
   });
 });
