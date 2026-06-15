@@ -14,8 +14,7 @@ export class WebhooksController {
     @Req() req: Request,
     @Headers('stripe-signature') signature: string,
   ) {
-    const rawBody =
-      (req as Request & { rawBody?: Buffer }).rawBody ?? Buffer.alloc(0);
-    return this.service.handleStripeWebhook(rawBody, signature);
+    const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
+    return this.service.handleStripeWebhook(rawBody ?? Buffer.alloc(0), signature);
   }
 }

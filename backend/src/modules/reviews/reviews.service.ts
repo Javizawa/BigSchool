@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { Prisma } from '../../../generated/prisma/client';
+import { OrderStatus, Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
@@ -56,7 +56,11 @@ export class ReviewsService {
               order: {
                 userId: user.id,
                 status: {
-                  notIn: ['cancelled', 'pending_payment', 'payment_failed'],
+                  notIn: [
+                    OrderStatus.cancelled,
+                    OrderStatus.pending_payment,
+                    OrderStatus.payment_failed,
+                  ],
                 },
               },
             },

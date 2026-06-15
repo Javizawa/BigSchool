@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
+  Coupon,
   CouponType,
   OrderStatus,
   Prisma,
@@ -111,10 +112,11 @@ export class OrdersService {
     );
 
     let discount = 0;
-    let appliedCoupon: CartForOrder['coupon'] | null = null;
+    let appliedCoupon: Coupon | null = null;
 
-    if (dto.couponCode) {
-      const coupon = await this.validateCoupon(dto.couponCode, subtotal);
+    const couponCode = dto.couponCode ?? cart.coupon?.code;
+    if (couponCode) {
+      const coupon = await this.validateCoupon(couponCode, subtotal);
       appliedCoupon = coupon;
       const value = Number(coupon.value);
       discount =
@@ -122,19 +124,6 @@ export class OrdersService {
           ? (subtotal * value) / 100
           : Math.min(subtotal, value);
       discount = Math.round(discount * 100) / 100;
-    } else if (cart.coupon) {
-      appliedCoupon = cart.coupon;
-      const value = Number(cart.coupon.value);
-      const minOk =
-        cart.coupon.minOrderAmount === null ||
-        subtotal >= Number(cart.coupon.minOrderAmount);
-      if (minOk) {
-        discount =
-          cart.coupon.type === CouponType.percentage
-            ? (subtotal * value) / 100
-            : Math.min(subtotal, value);
-        discount = Math.round(discount * 100) / 100;
-      }
     }
 
     const total = Math.round((subtotal - discount) * 100) / 100;
@@ -202,6 +191,7 @@ export class OrdersService {
 
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
+      select: { id: true, userId: true, status: true, couponId: true },
     });
     if (!order || order.userId !== user.id) {
       throw new NotFoundException('Order not found');
@@ -217,10 +207,21 @@ export class OrdersService {
       );
     }
 
-    const updated = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.cancelled },
-      include: ORDER_INCLUDE,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.cancelled },
+        include: ORDER_INCLUDE,
+      });
+
+      if (order.couponId) {
+        await tx.coupon.update({
+          where: { id: order.couponId },
+          data: { usedCount: { decrement: 1 } },
+        });
+      }
+
+      return result;
     });
 
     return this.mapOrder(updated);

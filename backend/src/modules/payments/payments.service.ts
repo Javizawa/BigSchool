@@ -28,6 +28,17 @@ export class PaymentsService {
       throw new BadRequestException('Order is not pending payment');
     }
 
+    // Idempotencia: reutilizar PI existente si el pedido ya lo tiene
+    if (order.stripePaymentIntentId) {
+      const existing = await this.stripe.paymentIntents.retrieve(
+        order.stripePaymentIntentId,
+      );
+      return {
+        clientSecret: existing.client_secret,
+        paymentIntentId: existing.id,
+      };
+    }
+
     const amountCents = Math.round(Number(order.total) * 100);
 
     const paymentIntent = await this.stripe.paymentIntents.create({
@@ -36,10 +47,15 @@ export class PaymentsService {
       metadata: { orderId: order.id, userId: user.id },
     });
 
-    await this.prisma.order.update({
-      where: { id: order.id },
-      data: { stripePaymentIntentId: paymentIntent.id },
-    });
+    try {
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { stripePaymentIntentId: paymentIntent.id },
+      });
+    } catch (err) {
+      await this.stripe.paymentIntents.cancel(paymentIntent.id).catch(() => {});
+      throw err;
+    }
 
     return {
       clientSecret: paymentIntent.client_secret,

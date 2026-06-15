@@ -72,6 +72,15 @@ export class ReturnsService {
       throw new BadRequestException('Only delivered orders can be returned');
     }
 
+    const RETURN_WINDOW_DAYS = 14;
+    const deliveredAt = order.updatedAt;
+    const deadlineMs = RETURN_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    if (Date.now() - deliveredAt.getTime() > deadlineMs) {
+      throw new BadRequestException(
+        `Return window of ${RETURN_WINDOW_DAYS} days has expired`,
+      );
+    }
+
     const existing = await this.prisma.return.findUnique({
       where: { orderId },
     });

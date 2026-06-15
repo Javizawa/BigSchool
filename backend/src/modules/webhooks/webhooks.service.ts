@@ -10,34 +10,41 @@ export class WebhooksService {
   constructor(private readonly prisma: PrismaService) {}
 
   async handleStripeWebhook(rawBody: Buffer, signature: string) {
+    if (!rawBody || rawBody.length === 0) {
+      throw new BadRequestException(
+        'Missing raw request body — ensure rawBody: true is set in NestFactory.create()',
+      );
+    }
+
     const webhookSecret = process.env['STRIPE_WEBHOOK_SECRET'];
     if (!webhookSecret) {
       throw new BadRequestException('Stripe webhook secret not configured');
     }
 
-    let eventType: string;
-    let paymentIntentId: string;
+    let event: ReturnType<typeof this.stripe.webhooks.constructEvent>;
     try {
-      const event = this.stripe.webhooks.constructEvent(
+      event = this.stripe.webhooks.constructEvent(
         rawBody,
         signature,
         webhookSecret,
       );
-      eventType = event.type;
-      paymentIntentId = (event.data.object as { id: string }).id;
     } catch {
       throw new BadRequestException('Invalid Stripe signature');
     }
 
-    if (eventType === 'payment_intent.succeeded') {
+    if (
+      event.type === 'payment_intent.succeeded' ||
+      event.type === 'payment_intent.payment_failed'
+    ) {
+      const paymentIntentId = (event.data.object as { id: string }).id;
+      const newStatus =
+        event.type === 'payment_intent.succeeded'
+          ? OrderStatus.confirmed
+          : OrderStatus.payment_failed;
+
       await this.prisma.order.updateMany({
         where: { stripePaymentIntentId: paymentIntentId },
-        data: { status: OrderStatus.confirmed },
-      });
-    } else if (eventType === 'payment_intent.payment_failed') {
-      await this.prisma.order.updateMany({
-        where: { stripePaymentIntentId: paymentIntentId },
-        data: { status: OrderStatus.payment_failed },
+        data: { status: newStatus },
       });
     }
 
