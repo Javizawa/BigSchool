@@ -1,8 +1,8 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, Injector, afterNextRender } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { loadStripe, Stripe, StripeCardElement } from '@stripe/stripe-js';
+import { loadStripe, Stripe, StripeElements } from '@stripe/stripe-js';
 import { environment } from '../../../environments/environment';
 import { OrdersApiService } from '../../core/api/orders.api';
 import { UsersApiService } from '../../core/api/users.api';
@@ -21,6 +21,7 @@ export class CheckoutPage implements OnInit {
   private readonly ordersApi = inject(OrdersApiService);
   private readonly usersApi = inject(UsersApiService);
   private readonly http = inject(HttpClient);
+  private readonly injector = inject(Injector);
   readonly cart = inject(CartService);
   private readonly router = inject(Router);
 
@@ -36,7 +37,7 @@ export class CheckoutPage implements OnInit {
   couponApplied = signal(false);
 
   private stripe: Stripe | null = null;
-  private cardElement: StripeCardElement | null = null;
+  private elements: StripeElements | null = null;
   private orderId: string | null = null;
   private clientSecret: string | null = null;
 
@@ -53,19 +54,21 @@ export class CheckoutPage implements OnInit {
     });
   }
 
-  async validateCoupon(): Promise<void> {
+  validateCoupon(): void {
     if (!this.couponCode.trim()) return;
     this.couponError.set(null);
-    this.http.post<{ code: string }>(`${environment.apiUrl}/coupons/validate`, {
-      code: this.couponCode,
-      subtotal: this.subtotal,
-    }).subscribe({
-      next: () => this.couponApplied.set(true),
-      error: (e) => this.couponError.set(e.error?.message ?? 'Cupón inválido'),
-    });
+    this.http
+      .post<{ code: string }>(`${environment.apiUrl}/coupons/validate`, {
+        code: this.couponCode,
+        subtotal: this.subtotal,
+      })
+      .subscribe({
+        next: () => this.couponApplied.set(true),
+        error: (e) => this.couponError.set(e.error?.message ?? 'Cupón inválido'),
+      });
   }
 
-  async proceedToPayment(): Promise<void> {
+  proceedToPayment(): void {
     if (!this.selectedAddressId) {
       this.error.set('Selecciona una dirección de envío');
       return;
@@ -73,51 +76,57 @@ export class CheckoutPage implements OnInit {
     this.processing.set(true);
     this.error.set(null);
 
-    this.ordersApi.create({
-      shippingAddressId: this.selectedAddressId,
-      couponCode: this.couponApplied() ? this.couponCode : undefined,
-    }).subscribe({
-      next: async (order) => {
-        this.orderId = order.id;
-        this.ordersApi.createPaymentIntent(order.id).subscribe({
-          next: async ({ clientSecret }) => {
-            this.clientSecret = clientSecret;
-            this.step.set('payment');
-            this.processing.set(false);
-            await this.mountStripe();
-          },
-          error: (e) => {
-            this.error.set(e.error?.message ?? 'Error al crear el pago');
-            this.processing.set(false);
-          },
-        });
-      },
-      error: (e) => {
-        this.error.set(e.error?.message ?? 'Error al crear el pedido');
-        this.processing.set(false);
-      },
-    });
+    this.ordersApi
+      .create({
+        shippingAddressId: this.selectedAddressId,
+        couponCode: this.couponApplied() ? this.couponCode : undefined,
+      })
+      .subscribe({
+        next: (order) => {
+          this.orderId = order.id;
+          this.ordersApi.createPaymentIntent(order.id).subscribe({
+            next: async ({ clientSecret }) => {
+              this.clientSecret = clientSecret;
+              // Load Stripe before showing payment step so mount is instant
+              this.stripe = await loadStripe(environment.stripePublishableKey);
+              this.step.set('payment');
+              this.processing.set(false);
+              afterNextRender(() => this.mountPaymentElement(), { injector: this.injector });
+            },
+            error: (e) => {
+              this.error.set(e.error?.message ?? 'Error al crear el pago');
+              this.processing.set(false);
+            },
+          });
+        },
+        error: (e) => {
+          this.error.set(e.error?.message ?? 'Error al crear el pedido');
+          this.processing.set(false);
+        },
+      });
   }
 
-  private async mountStripe(): Promise<void> {
-    this.stripe = await loadStripe(environment.stripePublishableKey);
-    if (!this.stripe) return;
-    const elements = this.stripe.elements();
-    this.cardElement = elements.create('card', {
-      style: { base: { fontSize: '16px', color: '#111827', '::placeholder': { color: '#9ca3af' } } },
+  private mountPaymentElement(): void {
+    if (!this.stripe || !this.clientSecret) return;
+    this.elements = this.stripe.elements({
+      clientSecret: this.clientSecret,
+      locale: 'es',
+      appearance: { theme: 'stripe', variables: { colorPrimary: '#4F46E5', borderRadius: '12px' } },
     });
-    setTimeout(() => {
-      if (this.cardElement) this.cardElement.mount('#card-element');
-    }, 100);
+    this.elements.create('payment').mount('#payment-element');
   }
 
   async confirmPayment(): Promise<void> {
-    if (!this.stripe || !this.cardElement || !this.clientSecret) return;
+    if (!this.stripe || !this.elements) return;
     this.processing.set(true);
     this.error.set(null);
 
-    const { error } = await this.stripe.confirmCardPayment(this.clientSecret, {
-      payment_method: { card: this.cardElement },
+    const { error } = await this.stripe.confirmPayment({
+      elements: this.elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/checkout/success?orderId=${this.orderId}`,
+      },
+      redirect: 'if_required',
     });
 
     if (error) {
@@ -125,13 +134,15 @@ export class CheckoutPage implements OnInit {
       this.processing.set(false);
     } else {
       this.cart.clear();
-      this.router.navigate(['/checkout/success'], { queryParams: { orderId: this.orderId } });
+      void this.router.navigate(['/checkout/success'], { queryParams: { orderId: this.orderId } });
     }
   }
 
   get subtotal(): number {
-    return this.cart.cart()?.items.reduce((s, i) => {
-      return s + (i.variant.product.salePrice ?? i.variant.product.price) * i.quantity;
-    }, 0) ?? 0;
+    return (
+      this.cart.cart()?.items.reduce((s, i) => {
+        return s + (i.variant.product.salePrice ?? i.variant.product.price) * i.quantity;
+      }, 0) ?? 0
+    );
   }
 }

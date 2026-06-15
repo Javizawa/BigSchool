@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
+import { CartService } from '../../../core/services/cart.service';
 
 @Component({
   selector: 'app-checkout-success',
@@ -40,11 +41,14 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 })
 export class CheckoutSuccessPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly cart = inject(CartService);
   readonly orderId = signal<string | null>(null);
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
       this.orderId.set(params['orderId'] ?? null);
     });
+    // Clear cart here too — handles Stripe's 3DS redirect back to this page
+    this.cart.clear();
   }
 }
