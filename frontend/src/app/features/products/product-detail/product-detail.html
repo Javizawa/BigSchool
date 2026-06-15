@@ -123,14 +123,60 @@
     </div>
 
     <!-- Reviews -->
-    @if (reviews().length > 0) {
-      <section class="mt-16">
-        <h2 class="text-xl font-bold text-gray-900 mb-6">Reseñas ({{ reviews().length }})</h2>
+    <section class="mt-16">
+      <h2 class="text-xl font-bold text-gray-900 mb-6">
+        Reseñas@if (reviews().length > 0) { ({{ reviews().length }}) }
+      </h2>
+
+      <!-- Review form (authenticated users only) -->
+      @if (auth.isAuthenticated()) {
+        <div class="bg-white rounded-2xl border border-gray-100 p-6 mb-8">
+          @if (reviewSubmitted()) {
+            <div class="text-green-700 bg-green-50 rounded-xl px-4 py-3 text-sm font-medium">
+              ✓ ¡Gracias por tu valoración!
+            </div>
+          } @else {
+            <h3 class="font-semibold text-gray-900 mb-4">Escribe una reseña</h3>
+
+            <!-- Star rating -->
+            <div class="flex gap-1 mb-4">
+              @for (s of stars; track s) {
+                <button type="button" (click)="setRating(s)"
+                  class="text-2xl transition-colors leading-none"
+                  [class.text-yellow-400]="s <= reviewRating()"
+                  [class.text-gray-300]="s > reviewRating()"
+                  [attr.aria-label]="s + ' estrellas'">★</button>
+              }
+            </div>
+
+            <div class="space-y-3">
+              <input type="text" [(ngModel)]="reviewTitle" placeholder="Título (opcional)" maxlength="100"
+                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+
+              <textarea [(ngModel)]="reviewBody" placeholder="Cuéntanos tu experiencia (mínimo 10 caracteres)..." rows="4" maxlength="2000"
+                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 resize-none"></textarea>
+            </div>
+
+            @if (reviewError()) {
+              <p class="text-red-500 text-sm mt-2">{{ reviewError() }}</p>
+            }
+
+            <button (click)="submitReview()"
+              [disabled]="reviewSubmitting() || reviewBody.trim().length < 10"
+              class="mt-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">
+              {{ reviewSubmitting() ? 'Enviando...' : 'Publicar reseña' }}
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Reviews list -->
+      @if (reviews().length > 0) {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           @for (r of reviews(); track r.id) {
             <div class="bg-white rounded-2xl p-5 border border-gray-100">
               <div class="flex items-center gap-2 mb-2">
-                <span class="text-yellow-400">{{ '★'.repeat(r.rating) }}</span>
+                <span class="text-yellow-400 text-sm">{{ '★'.repeat(r.rating) }}</span>
                 @if (r.title) { <span class="font-semibold text-sm">{{ r.title }}</span> }
               </div>
               @if (r.body) { <p class="text-gray-600 text-sm">{{ r.body }}</p> }
@@ -138,16 +184,18 @@
             </div>
           }
         </div>
-      </section>
-    }
+      } @else if (!auth.isAuthenticated()) {
+        <p class="text-gray-400 text-sm">Aún no hay reseñas. <a routerLink="/auth/login" class="text-indigo-600 hover:underline">Inicia sesión</a> para ser el primero.</p>
+      }
+    </section>
 
     <!-- Related -->
     @if (related().length > 0) {
       <section class="mt-16">
         <h2 class="text-xl font-bold text-gray-900 mb-6">También te puede gustar</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          @for (p of related(); track p.id) {
-            <app-product-card [product]="p" />
+          @for (rp of related(); track rp.id) {
+            <app-product-card [product]="rp" />
           }
         </div>
       </section>

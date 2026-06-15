@@ -49,6 +49,10 @@ export class ProductsApiService {
     });
   }
 
+  createReview(productId: string, dto: { rating: number; title?: string | null; body: string }) {
+    return this.http.post<Review>(`${this.url}/${productId}/reviews`, dto);
+  }
+
   notifyStock(productId: string, variantId: string) {
     return this.http.post(`${this.url}/${productId}/variants/${variantId}/notify-stock`, {});
   }
