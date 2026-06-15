@@ -45,7 +45,6 @@ const ORDER_INCLUDE = {
   coupon: { select: { id: true, code: true } },
 } satisfies Prisma.OrderInclude;
 
-type CartForOrder = Prisma.CartGetPayload<{ include: typeof CART_FOR_ORDER }>;
 type OrderWithDetails = Prisma.OrderGetPayload<{
   include: typeof ORDER_INCLUDE;
 }>;
