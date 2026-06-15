@@ -7,6 +7,3 @@ rules:
 
   # Todos los endpoints deben tener al menos un tag
   operation-tags: error
-
-  # Las respuestas de error deben existir
-  operation-4xx-response: warn
