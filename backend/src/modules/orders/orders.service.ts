@@ -43,6 +43,13 @@ const ORDER_INCLUDE = {
   items: true,
   tracking: true,
   coupon: { select: { id: true, code: true } },
+  return: {
+    include: {
+      items: {
+        include: { orderItem: true },
+      },
+    },
+  },
 } satisfies Prisma.OrderInclude;
 
 type OrderWithDetails = Prisma.OrderGetPayload<{
@@ -128,8 +135,10 @@ export class OrdersService {
     const total = Math.round((subtotal - discount) * 100) / 100;
 
     const shippingAddressSnapshot = {
-      alias: address.alias,
-      street: address.street,
+      label: address.label,
+      fullName: address.fullName,
+      line1: address.line1,
+      line2: address.line2 ?? null,
       city: address.city,
       province: address.province,
       postalCode: address.postalCode,
@@ -280,6 +289,29 @@ export class OrdersService {
             carrier: order.tracking.carrier,
             trackingNumber: order.tracking.trackingNumber,
             trackingUrl: order.tracking.trackingUrl,
+          }
+        : null,
+      return: order.return
+        ? {
+            id: order.return.id,
+            status: order.return.status,
+            reason: order.return.reason,
+            adminNotes: order.return.adminNotes,
+            refundAmount: order.return.refundAmount !== null ? Number(order.return.refundAmount) : null,
+            items: order.return.items.map((ri) => ({
+              id: ri.id,
+              quantity: ri.quantity,
+              orderItem: {
+                id: ri.orderItem.id,
+                productName: ri.orderItem.productName,
+                variantSku: ri.orderItem.variantSku,
+                size: Number(ri.orderItem.size),
+                color: ri.orderItem.color,
+                thumbnailUrl: ri.orderItem.thumbnailUrl,
+                unitPrice: Number(ri.orderItem.unitPrice),
+              },
+            })),
+            createdAt: order.return.createdAt,
           }
         : null,
       createdAt: order.createdAt,

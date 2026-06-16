@@ -35,6 +35,7 @@ export class CheckoutPage implements OnInit {
   couponCode = '';
   couponError = signal<string | null>(null);
   couponApplied = signal(false);
+  couponDiscount = signal(0);
 
   private stripe: Stripe | null = null;
   private elements: StripeElements | null = null;
@@ -58,12 +59,15 @@ export class CheckoutPage implements OnInit {
     if (!this.couponCode.trim()) return;
     this.couponError.set(null);
     this.http
-      .post<{ code: string }>(`${environment.apiUrl}/coupons/validate`, {
+      .post<{ code: string; discount: number }>(`${environment.apiUrl}/coupons/validate`, {
         code: this.couponCode,
-        subtotal: this.subtotal,
+        cartTotal: this.subtotal,
       })
       .subscribe({
-        next: () => this.couponApplied.set(true),
+        next: (res) => {
+          this.couponApplied.set(true);
+          this.couponDiscount.set(res.discount);
+        },
         error: (e) => this.couponError.set(e.error?.message ?? 'Cupón inválido'),
       });
   }
@@ -78,7 +82,7 @@ export class CheckoutPage implements OnInit {
 
     this.ordersApi
       .create({
-        shippingAddressId: this.selectedAddressId,
+        addressId: this.selectedAddressId,
         couponCode: this.couponApplied() ? this.couponCode : undefined,
       })
       .subscribe({
@@ -144,5 +148,9 @@ export class CheckoutPage implements OnInit {
         return s + (i.variant.product.salePrice ?? i.variant.product.price) * i.quantity;
       }, 0) ?? 0
     );
+  }
+
+  get total(): number {
+    return Math.max(0, this.subtotal - this.couponDiscount());
   }
 }

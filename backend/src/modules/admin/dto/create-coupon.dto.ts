@@ -34,7 +34,8 @@ export class CreateCouponDto {
   maxUses?: number | null;
 
   @IsDateString()
-  validFrom: string;
+  @IsOptional()
+  validFrom?: string;
 
   @IsDateString()
   @IsOptional()

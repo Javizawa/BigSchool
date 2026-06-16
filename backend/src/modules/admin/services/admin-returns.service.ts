@@ -3,12 +3,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ReturnStatus } from '../../../../generated/prisma/client';
+import { OrderStatus, Prisma, ReturnStatus } from '../../../../generated/prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { ListAdminReturnsDto } from '../dto/list-returns.dto';
 import { UpdateReturnDto } from '../dto/update-return.dto';
 
 const RETURN_INCLUDE = {
+  order: {
+    select: {
+      user: { select: { id: true, email: true, firstName: true, lastName: true } },
+    },
+  },
   items: {
     include: {
       orderItem: {
@@ -75,17 +80,31 @@ export class AdminReturnsService {
 
     this.validateStatusTransition(ret.status, dto.status);
 
-    const updated = await this.prisma.return.update({
-      where: { id: returnId },
-      data: {
-        status: dto.status,
-        ...(dto.adminNotes !== undefined && { adminNotes: dto.adminNotes }),
-        ...(dto.refundAmount !== undefined && {
-          refundAmount: dto.refundAmount,
-        }),
-      },
-      include: RETURN_INCLUDE,
+    const ORDER_STATUS_SYNC: Partial<Record<ReturnStatus, OrderStatus>> = {
+      [ReturnStatus.approved]: OrderStatus.return_approved,
+      [ReturnStatus.rejected]: OrderStatus.delivered,
+      [ReturnStatus.refunded]: OrderStatus.refunded,
+    };
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const orderStatus = ORDER_STATUS_SYNC[dto.status];
+      if (orderStatus) {
+        await tx.order.update({
+          where: { id: ret.orderId },
+          data: { status: orderStatus },
+        });
+      }
+      return tx.return.update({
+        where: { id: returnId },
+        data: {
+          status: dto.status,
+          ...(dto.adminNotes !== undefined && { adminNotes: dto.adminNotes }),
+          ...(dto.refundAmount !== undefined && { refundAmount: dto.refundAmount }),
+        },
+        include: RETURN_INCLUDE,
+      });
     });
+
     return this.mapReturn(updated);
   }
 
@@ -111,6 +130,12 @@ export class AdminReturnsService {
       reason: ret.reason,
       adminNotes: ret.adminNotes,
       refundAmount: ret.refundAmount !== null ? Number(ret.refundAmount) : null,
+      user: {
+        id: ret.order.user.id,
+        email: ret.order.user.email,
+        firstName: ret.order.user.firstName,
+        lastName: ret.order.user.lastName,
+      },
       items: ret.items.map((item) => ({
         id: item.id,
         orderItem: {

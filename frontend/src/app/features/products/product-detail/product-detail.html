@@ -89,6 +89,18 @@
 
         <!-- Add to cart / notify -->
         <div class="flex gap-3">
+          @if (product()) {
+            <button type="button" (click)="wishlist.toggle(product()!.id)"
+              class="w-14 h-14 rounded-2xl border flex items-center justify-center transition-colors shrink-0"
+              [class]="wishlist.ids().has(product()!.id) ? 'border-red-200 bg-red-50 text-red-500' : 'border-gray-200 bg-white text-gray-400 hover:border-red-200 hover:text-red-400'"
+              [attr.aria-label]="wishlist.ids().has(product()!.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'">
+              <svg class="w-6 h-6" viewBox="0 0 24 24" stroke-width="2"
+                [attr.fill]="wishlist.ids().has(product()!.id) ? 'currentColor' : 'none'"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+              </svg>
+            </button>
+          }
           @if (canBuy) {
             <button (click)="addToCart()" [disabled]="addingToCart()"
               class="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-bold py-4 rounded-2xl text-base transition-colors shadow-sm">

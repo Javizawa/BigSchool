@@ -9,11 +9,19 @@ import {
 export class AddressDto {
   @IsString()
   @MinLength(1)
-  alias: string;
+  label: string;
 
   @IsString()
   @MinLength(1)
-  street: string;
+  fullName: string;
+
+  @IsString()
+  @MinLength(1)
+  line1: string;
+
+  @IsOptional()
+  @IsString()
+  line2?: string;
 
   @IsString()
   @MinLength(1)
@@ -30,6 +38,10 @@ export class AddressDto {
   @IsString()
   @Length(2, 2)
   country: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
 
   @IsOptional()
   @IsBoolean()

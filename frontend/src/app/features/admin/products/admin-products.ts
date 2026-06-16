@@ -1,8 +1,9 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminApiService } from '../../../core/api/admin.api';
 import { AdminProduct, Brand, Category, PagedResult } from '../../../core/models';
 import { CloudinaryUploadComponent } from '../../../shared/components/cloudinary-upload/cloudinary-upload';
+import { FilterSelectComponent, FilterOption } from '../../../shared/components/filter-select/filter-select';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination';
 import { PricePipe } from '../../../shared/pipes/price.pipe';
 import { SpinnerComponent } from '../../../shared/components/spinner/spinner';
@@ -24,7 +25,7 @@ function emptyForm(): ProductForm {
     name: '',
     brandId: '',
     categoryId: '',
-    gender: 'UNISEX',
+    gender: 'unisex',
     price: null,
     salePrice: null,
     thumbnailUrl: null,
@@ -36,7 +37,7 @@ function emptyForm(): ProductForm {
 @Component({
   selector: 'app-admin-products',
   standalone: true,
-  imports: [FormsModule, PricePipe, SpinnerComponent, PaginationComponent, CloudinaryUploadComponent],
+  imports: [FormsModule, PricePipe, SpinnerComponent, PaginationComponent, CloudinaryUploadComponent, FilterSelectComponent],
   templateUrl: './admin-products.html',
 })
 export class AdminProductsPage implements OnInit {
@@ -45,6 +46,14 @@ export class AdminProductsPage implements OnInit {
   readonly result = signal<PagedResult<AdminProduct> | null>(null);
   readonly brands = signal<Brand[]>([]);
   readonly categories = signal<Category[]>([]);
+  readonly brandOptions = computed<FilterOption[]>(() => this.brands().map((b) => ({ value: b.id, label: b.name })));
+  readonly categoryOptions = computed<FilterOption[]>(() => this.categories().map((c) => ({ value: c.id, label: c.name })));
+  readonly genderOptions: FilterOption[] = [
+    { value: 'man', label: 'Hombre' },
+    { value: 'woman', label: 'Mujer' },
+    { value: 'unisex', label: 'Unisex' },
+    { value: 'kids', label: 'Niños' },
+  ];
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly panelMode = signal<'create' | 'edit' | null>(null);
@@ -101,7 +110,7 @@ export class AdminProductsPage implements OnInit {
       ...this.form,
       price: Number(this.form.price),
       salePrice: this.form.salePrice ? Number(this.form.salePrice) : null,
-      description: this.form.description || null,
+      description: this.form.description || undefined,
     };
 
     this.saving.set(true);
@@ -125,7 +134,7 @@ export class AdminProductsPage implements OnInit {
   }
 
   delete(p: AdminProduct): void {
-    if (!confirm(`¿Desactivar "${p.name}"?`)) return;
+    if (!confirm(`¿Eliminar "${p.name}"? Esta acción no se puede deshacer.`)) return;
     this.api.deleteProduct(p.id).subscribe(() => this.load());
   }
 }

@@ -40,7 +40,7 @@ export class AdminCouponsService {
         value: dto.value,
         minOrderAmount: dto.minOrderAmount ?? null,
         maxUses: dto.maxUses ?? null,
-        validFrom: new Date(dto.validFrom),
+        validFrom: dto.validFrom ? new Date(dto.validFrom) : new Date(),
         validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
         isActive: dto.isActive ?? true,
       },

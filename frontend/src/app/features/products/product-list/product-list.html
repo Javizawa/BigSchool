@@ -6,43 +6,36 @@
 
       <div class="space-y-5">
         <div>
-          <label for="filter-gender" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Género</label>
-          <select id="filter-gender" [(ngModel)]="filter.gender" (change)="applyFilter()"
-            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
-            <option value="">Todos</option>
-            <option value="MEN">Hombre</option>
-            <option value="WOMEN">Mujer</option>
-            <option value="UNISEX">Unisex</option>
-            <option value="KIDS">Niños</option>
-          </select>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Género</label>
+          <app-filter-select
+            [options]="genderOptions"
+            placeholder="Todos"
+            [(value)]="filter.gender"
+            (changed)="applyFilter()" />
         </div>
 
         <div>
-          <label for="filter-category" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Categoría</label>
-          <select id="filter-category" [(ngModel)]="filter.categoryId" (change)="applyFilter()"
-            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
-            <option value="">Todas</option>
-            @for (cat of categories(); track cat.id) {
-              <option [value]="cat.id">{{ cat.name }}</option>
-            }
-          </select>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Categoría</label>
+          <app-filter-select
+            [options]="categories().map(c => ({ value: c.id, label: c.name }))"
+            placeholder="Todas"
+            [(value)]="filter.categoryId"
+            (changed)="applyFilter()" />
         </div>
 
         <div>
-          <label for="filter-brand" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Marca</label>
-          <select id="filter-brand" [(ngModel)]="filter.brandId" (change)="applyFilter()"
-            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
-            <option value="">Todas</option>
-            @for (b of brands(); track b.id) {
-              <option [value]="b.id">{{ b.name }}</option>
-            }
-          </select>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Marca</label>
+          <app-filter-select
+            [options]="brands().map(b => ({ value: b.id, label: b.name }))"
+            placeholder="Todas"
+            [(value)]="filter.brandId"
+            (changed)="applyFilter()" />
         </div>
 
         <div>
-          <label for="filter-minPrice" class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Precio</label>
+          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Precio</label>
           <div class="flex gap-2 items-center">
-            <input id="filter-minPrice" type="number" [(ngModel)]="filter.minPrice" placeholder="Min"
+            <input type="number" [(ngModel)]="filter.minPrice" placeholder="Min"
               class="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-indigo-400" />
             <span class="text-gray-400">–</span>
             <input type="number" [(ngModel)]="filter.maxPrice" placeholder="Max"
@@ -56,19 +49,19 @@
     </aside>
 
     <!-- Results -->
-    <div class="flex-1">
+    <div class="flex-1 min-w-0">
       <!-- Search + sort bar -->
       <div class="flex gap-3 mb-6">
         <input type="search" [(ngModel)]="filter.search" (keydown.enter)="applyFilter()"
           placeholder="Buscar zapatillas..."
           class="flex-1 border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-indigo-400" />
-        <select [(ngModel)]="filter.sortBy" (change)="applyFilter()"
-          class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
-          <option value="newest">Más reciente</option>
-          <option value="price_asc">Precio: menor</option>
-          <option value="price_desc">Precio: mayor</option>
-          <option value="rating">Valoración</option>
-        </select>
+        <div class="w-44 shrink-0">
+          <app-filter-select
+            [options]="sortOptions"
+            placeholder="Ordenar"
+            [value]="filter.sortBy"
+            (valueChange)="filter.sortBy = $event; applyFilter()" />
+        </div>
       </div>
 
       @if (loading()) {

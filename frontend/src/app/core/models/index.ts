@@ -128,6 +128,28 @@ export interface OrderItem {
   subtotal: number;
 }
 
+export interface OrderReturn {
+  id: string;
+  status: ReturnStatus;
+  reason: string;
+  adminNotes: string | null;
+  refundAmount: number | null;
+  items: {
+    id: string;
+    quantity: number;
+    orderItem: {
+      id: string;
+      productName: string;
+      variantSku: string;
+      size: number;
+      color: string;
+      thumbnailUrl: string | null;
+      unitPrice: number;
+    };
+  }[];
+  createdAt: string;
+}
+
 export interface Order {
   id: string;
   status: OrderStatus;
@@ -138,6 +160,7 @@ export interface Order {
   couponCode: string | null;
   items: OrderItem[];
   tracking: { carrier: string; trackingNumber: string; trackingUrl: string | null } | null;
+  return: OrderReturn | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -174,8 +197,24 @@ export interface Return {
   orderId: string;
   status: ReturnStatus;
   reason: string;
-  items: { id: string; quantity: number; orderItem: { productName: string; variantSku: string } }[];
+  adminNotes: string | null;
+  refundAmount: number | null;
+  items: {
+    id: string;
+    quantity: number;
+    reason: string | null;
+    orderItem: {
+      id: string;
+      productName: string;
+      variantSku: string;
+      size: number;
+      color: string;
+      thumbnailUrl: string | null;
+      unitPrice: number;
+    };
+  }[];
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Coupon {
@@ -200,12 +239,13 @@ export interface SizeGuide {
 
 export interface AnalyticsSummary {
   revenue: number;
-  orders: number;
+  orderCount: number;
+  averageOrderValue: number;
   newUsers: number;
   pendingOrders: number;
   pendingReturns: number;
   lowStockVariants: number;
-  topProducts: { productSlug: string; unitsSold: number; revenue: number }[];
+  topProducts: { productId: string; name: string; thumbnailUrl: string | null; unitsSold: number; revenue: number }[];
 }
 
 // Admin
@@ -245,5 +285,5 @@ export interface AdminCoupon {
 }
 
 export interface AdminReturn extends Return {
-  user: { id: string; email: string };
+  user: { id: string; email: string; firstName: string | null; lastName: string | null };
 }

@@ -1,27 +1,17 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { UsersApiService } from '../../../core/api/users.api';
 import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule],
   template: `
     <div class="max-w-2xl mx-auto px-4 py-10">
       <h1 class="text-2xl font-bold text-gray-900 mb-8">Mi perfil</h1>
 
-      <!-- Nav -->
-      <div class="flex gap-2 mb-8 border-b border-gray-200 pb-0">
-        @for (tab of tabs; track tab.path) {
-          <a [routerLink]="tab.path" class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-indigo-600 border-b-2 border-transparent hover:border-indigo-600 -mb-px transition-colors">
-            {{ tab.label }}
-          </a>
-        }
-      </div>
-
-      @if (saved()) {
+@if (saved()) {
         <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">✓ Cambios guardados</div>
       }
 
@@ -62,14 +52,7 @@ export class ProfilePage implements OnInit {
   readonly saving = signal(false);
   readonly saved = signal(false);
 
-  readonly tabs = [
-    { path: '/user/profile', label: 'Perfil' },
-    { path: '/user/orders', label: 'Pedidos' },
-    { path: '/user/wishlist', label: 'Wishlist' },
-    { path: '/user/addresses', label: 'Direcciones' },
-  ];
-
-  ngOnInit(): void {
+ngOnInit(): void {
     const u = this.auth.user();
     if (u) {
       this.firstName = u.firstName ?? '';

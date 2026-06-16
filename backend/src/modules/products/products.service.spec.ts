@@ -16,7 +16,7 @@ const baseProduct = {
   id: 'prod-1',
   name: 'Air Max 90',
   slug: 'air-max-90',
-  gender: 'MEN',
+  gender: 'man',
   price: 120,
   salePrice: null,
   saleEndsAt: null,

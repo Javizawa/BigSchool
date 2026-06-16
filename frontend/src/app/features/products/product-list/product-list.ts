@@ -1,19 +1,20 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { CategoriesApiService } from '../../../core/api/categories.api';
 import { ProductsApiService, ProductsFilter } from '../../../core/api/products.api';
 import { Brand, Category, PagedResult, Product } from '../../../core/models';
+import { FilterSelectComponent, FilterOption } from '../../../shared/components/filter-select/filter-select';
 import { PaginationComponent } from '../../../shared/components/pagination/pagination';
 import { ProductCardComponent } from '../../../shared/components/product-card/product-card';
 import { SpinnerComponent } from '../../../shared/components/spinner/spinner';
-import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [FormsModule, ProductCardComponent, SpinnerComponent, PaginationComponent],
+  imports: [FormsModule, FilterSelectComponent, ProductCardComponent, SpinnerComponent, PaginationComponent],
   templateUrl: './product-list.html',
 })
 export class ProductListPage implements OnInit {
@@ -29,6 +30,20 @@ export class ProductListPage implements OnInit {
   readonly loading = signal(true);
 
   filter: ProductsFilter = { page: 1, limit: 24, sortBy: 'newest' };
+
+  readonly genderOptions: FilterOption[] = [
+    { value: 'man', label: 'Hombre' },
+    { value: 'woman', label: 'Mujer' },
+    { value: 'unisex', label: 'Unisex' },
+    { value: 'kids', label: 'Niños' },
+  ];
+
+  readonly sortOptions: FilterOption[] = [
+    { value: 'newest', label: 'Más reciente' },
+    { value: 'price_asc', label: 'Precio: menor' },
+    { value: 'price_desc', label: 'Precio: mayor' },
+    { value: 'rating', label: 'Valoración' },
+  ];
 
   ngOnInit(): void {
     this.categoriesApi.list().subscribe((c) => this.categories.set(c));

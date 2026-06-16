@@ -136,7 +136,8 @@ export class AdminProductsService {
         price: dto.price,
         salePrice: dto.salePrice ?? null,
         saleEndsAt: dto.saleEndsAt ? new Date(dto.saleEndsAt) : null,
-        description: dto.description,
+        description: dto.description ?? '',
+        isActive: dto.isActive ?? true,
         thumbnailUrl: dto.thumbnailUrl ?? null,
         ...(dto.seo && {
           seo: {
@@ -231,10 +232,7 @@ export class AdminProductsService {
       where: { id: productId },
     });
     if (!product) throw new NotFoundException('Product not found');
-    await this.prisma.product.update({
-      where: { id: productId },
-      data: { isActive: false },
-    });
+    await this.prisma.product.delete({ where: { id: productId } });
   }
 
   async createVariant(productId: string, dto: CreateVariantDto) {

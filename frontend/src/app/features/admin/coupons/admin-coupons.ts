@@ -93,6 +93,16 @@ import { SpinnerComponent } from '../../../shared/components/spinner/spinner';
               <input id="coupon-maxUses" type="number" [(ngModel)]="newMaxUses" name="maxUses" min="1"
                 class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
             </div>
+            <div>
+              <label for="coupon-minOrder" class="block text-xs font-medium text-gray-600 mb-1">Pedido mínimo (€)</label>
+              <input id="coupon-minOrder" type="number" [(ngModel)]="newMinOrderAmount" name="minOrderAmount" min="0" step="0.01"
+                class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+            </div>
+            <div>
+              <label for="coupon-validUntil" class="block text-xs font-medium text-gray-600 mb-1">Válido hasta</label>
+              <input id="coupon-validUntil" type="date" [(ngModel)]="newValidUntil" name="validUntil"
+                class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400" />
+            </div>
             <div class="col-span-2 flex gap-3">
               <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
                 Crear
@@ -117,6 +127,8 @@ export class AdminCouponsPage implements OnInit {
   newType: 'percentage' | 'fixed' = 'percentage';
   newValue = 10;
   newMaxUses: number | null = null;
+  newMinOrderAmount: number | null = null;
+  newValidUntil = '';
 
   ngOnInit(): void { this.load(); }
 
@@ -134,7 +146,17 @@ export class AdminCouponsPage implements OnInit {
       type: this.newType,
       value: this.newValue,
       ...(this.newMaxUses && { maxUses: this.newMaxUses }),
-    }).subscribe(() => { this.showForm.set(false); this.load(); });
+      ...(this.newMinOrderAmount && { minOrderAmount: this.newMinOrderAmount }),
+      ...(this.newValidUntil && { validUntil: this.newValidUntil }),
+    }).subscribe(() => {
+      this.showForm.set(false);
+      this.newCode = '';
+      this.newValue = 10;
+      this.newMaxUses = null;
+      this.newMinOrderAmount = null;
+      this.newValidUntil = '';
+      this.load();
+    });
   }
 
   toggle(c: AdminCoupon): void {

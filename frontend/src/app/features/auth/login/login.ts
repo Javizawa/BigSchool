@@ -1,6 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { Component, Injector, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { filter, take } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
@@ -57,6 +59,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly injector = inject(Injector);
 
   email = '';
   password = '';
@@ -68,10 +71,14 @@ export class LoginPage {
     this.error.set(null);
     try {
       await this.auth.signIn(this.email, this.password);
-      this.router.navigate(['/']);
+      toObservable(this.auth.user, { injector: this.injector })
+        .pipe(filter(Boolean), take(1))
+        .subscribe(() => {
+          this.router.navigate([this.auth.isAdmin() ? '/admin' : '/']);
+          this.loading.set(false);
+        });
     } catch (e: unknown) {
       this.error.set((e as { message?: string }).message ?? 'Error al iniciar sesión');
-    } finally {
       this.loading.set(false);
     }
   }

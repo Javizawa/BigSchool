@@ -4,7 +4,7 @@ import { environment } from '../../../environments/environment';
 import { Order, PagedResult } from '../models';
 
 export interface CreateOrderDto {
-  shippingAddressId: string;
+  addressId: string;
   couponCode?: string;
 }
 

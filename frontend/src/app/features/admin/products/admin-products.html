@@ -127,37 +127,31 @@
       <!-- Brand + Category -->
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label for="p-brand" class="block text-sm font-medium text-gray-700 mb-1">Marca <span class="text-red-500">*</span></label>
-          <select id="p-brand" [(ngModel)]="form.brandId" required
-            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400">
-            <option value="">Seleccionar...</option>
-            @for (b of brands(); track b.id) {
-              <option [value]="b.id">{{ b.name }}</option>
-            }
-          </select>
+          <p class="block text-sm font-medium text-gray-700 mb-1">Marca <span class="text-red-500">*</span></p>
+          <app-filter-select
+            [options]="brandOptions()"
+            placeholder="Seleccionar..."
+            [value]="form.brandId || undefined"
+            (changed)="form.brandId = $event" />
         </div>
         <div>
-          <label for="p-category" class="block text-sm font-medium text-gray-700 mb-1">Categoría <span class="text-red-500">*</span></label>
-          <select id="p-category" [(ngModel)]="form.categoryId" required
-            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400">
-            <option value="">Seleccionar...</option>
-            @for (c of categories(); track c.id) {
-              <option [value]="c.id">{{ c.name }}</option>
-            }
-          </select>
+          <p class="block text-sm font-medium text-gray-700 mb-1">Categoría <span class="text-red-500">*</span></p>
+          <app-filter-select
+            [options]="categoryOptions()"
+            placeholder="Seleccionar..."
+            [value]="form.categoryId || undefined"
+            (changed)="form.categoryId = $event" />
         </div>
       </div>
 
       <!-- Gender -->
       <div>
-        <label for="p-gender" class="block text-sm font-medium text-gray-700 mb-1">Género <span class="text-red-500">*</span></label>
-        <select id="p-gender" [(ngModel)]="form.gender"
-          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-400">
-          <option value="MEN">Hombre</option>
-          <option value="WOMEN">Mujer</option>
-          <option value="UNISEX">Unisex</option>
-          <option value="KIDS">Niños</option>
-        </select>
+        <p class="block text-sm font-medium text-gray-700 mb-1">Género <span class="text-red-500">*</span></p>
+        <app-filter-select
+          [options]="genderOptions"
+          placeholder="Seleccionar..."
+          [value]="form.gender || undefined"
+          (changed)="form.gender = $event" />
       </div>
 
       <!-- Price + Sale price -->

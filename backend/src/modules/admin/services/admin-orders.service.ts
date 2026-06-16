@@ -130,7 +130,7 @@ export class AdminOrdersService {
 
   private validateStatusTransition(from: OrderStatus, to: OrderStatus) {
     const allowed: Partial<Record<OrderStatus, OrderStatus[]>> = {
-      [OrderStatus.pending_payment]: [OrderStatus.cancelled],
+      [OrderStatus.pending_payment]: [OrderStatus.confirmed, OrderStatus.cancelled],
       [OrderStatus.confirmed]: [OrderStatus.processing, OrderStatus.cancelled],
       [OrderStatus.processing]: [OrderStatus.shipped, OrderStatus.cancelled],
       [OrderStatus.shipped]: [OrderStatus.delivered],

@@ -38,7 +38,7 @@ type Period = 'today' | 'week' | 'month' | 'year';
           </div>
           <div class="bg-white rounded-2xl border border-gray-100 p-5">
             <p class="text-sm text-gray-500 mb-1">Pedidos</p>
-            <p class="text-2xl font-black text-gray-900">{{ d.orders }}</p>
+            <p class="text-2xl font-black text-gray-900">{{ d.orderCount }}</p>
           </div>
           <div class="bg-white rounded-2xl border border-gray-100 p-5">
             <p class="text-sm text-gray-500 mb-1">Nuevos usuarios</p>
@@ -71,14 +71,20 @@ type Period = 'today' | 'week' | 'month' | 'year';
           <div class="bg-white rounded-2xl border border-gray-100 p-6">
             <h2 class="font-bold text-gray-900 mb-4">Top productos</h2>
             <div class="space-y-3">
-              @for (p of d.topProducts; track p.productSlug; let i = $index) {
+              @for (p of d.topProducts; track p.productId; let i = $index) {
                 <div class="flex items-center gap-4">
                   <span class="text-lg font-black text-gray-300 w-6">{{ i + 1 }}</span>
-                  <div class="flex-1">
-                    <p class="font-medium text-gray-900">{{ p.productSlug }}</p>
+                  @if (p.thumbnailUrl) {
+                    <img [src]="p.thumbnailUrl" [alt]="p.name" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                  } @else {
+                    <div class="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0"></div>
+                  }
+                  <div class="flex-1 min-w-0">
+                    <p class="font-medium text-gray-900 truncate">{{ p.name }}</p>
                   </div>
-                  <div class="text-right">
+                  <div class="text-right flex-shrink-0">
                     <p class="font-semibold text-gray-900">{{ p.unitsSold }} uds.</p>
+                    <p class="text-sm text-gray-500">{{ p.revenue | price }}</p>
                   </div>
                 </div>
               }

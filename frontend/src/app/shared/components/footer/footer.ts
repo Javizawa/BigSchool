@@ -16,8 +16,8 @@ import { RouterLink } from '@angular/router';
           <div>
             <h4 class="text-white font-semibold text-sm mb-3 uppercase tracking-wide">Productos</h4>
             <ul class="space-y-2 text-sm">
-              <li><a routerLink="/products" [queryParams]="{gender:'MEN'}" class="hover:text-white transition-colors">Hombre</a></li>
-              <li><a routerLink="/products" [queryParams]="{gender:'WOMEN'}" class="hover:text-white transition-colors">Mujer</a></li>
+              <li><a routerLink="/products" [queryParams]="{gender:'man'}" class="hover:text-white transition-colors">Hombre</a></li>
+              <li><a routerLink="/products" [queryParams]="{gender:'woman'}" class="hover:text-white transition-colors">Mujer</a></li>
               <li><a routerLink="/products" [queryParams]="{onSale:true}" class="hover:text-white transition-colors">Sale</a></li>
             </ul>
           </div>

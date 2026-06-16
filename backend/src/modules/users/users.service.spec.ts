@@ -36,7 +36,7 @@ const address = {
   label: 'Casa',
   fullName: 'Jane Doe',
   line1: 'Calle 1',
-  line2: null,
+  line2: undefined,
   postalCode: '28001',
   city: 'Madrid',
   province: 'Madrid',
