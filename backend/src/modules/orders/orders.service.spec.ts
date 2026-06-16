@@ -44,6 +44,7 @@ const confirmedOrder = {
   stripePaymentIntentId: null,
   items: [],
   tracking: null,
+  return: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   coupon: null,
@@ -123,6 +124,46 @@ describe('OrdersService', () => {
 
       expect(result.id).toBe('order-1');
       expect(result.status).toBe('confirmed');
+      expect(result.return).toBeNull();
+    });
+
+    it('includes return data when the order has a return', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(dbUser);
+      mockPrisma.order.findUnique.mockResolvedValue({
+        ...confirmedOrder,
+        status: 'refunded',
+        return: {
+          id: 'ret-1',
+          orderId: 'order-1',
+          status: 'refunded',
+          reason: 'Wrong size',
+          adminNotes: 'Approved',
+          refundAmount: 89.95,
+          createdAt: new Date(),
+          items: [
+            {
+              id: 'ri-1',
+              quantity: 1,
+              orderItem: {
+                id: 'oi-1',
+                productName: 'Air Max 90',
+                variantSku: 'SKU-1',
+                size: 42,
+                color: 'Black',
+                thumbnailUrl: null,
+                unitPrice: 89.95,
+              },
+            },
+          ],
+        },
+      });
+
+      const result = await service.findOne(supabaseUser, 'order-1');
+
+      expect(result.return).not.toBeNull();
+      expect(result.return!.refundAmount).toBe(89.95);
+      expect(result.return!.items).toHaveLength(1);
+      expect(result.return!.items[0].orderItem.productName).toBe('Air Max 90');
     });
   });
 

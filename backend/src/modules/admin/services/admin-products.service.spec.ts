@@ -10,6 +10,7 @@ const mockPrisma = {
     findUnique: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
   },
   productVariant: {
     findUnique: jest.fn(),
@@ -204,15 +205,16 @@ describe('AdminProductsService', () => {
       );
     });
 
-    it('soft-deletes by setting isActive to false', async () => {
+    it('permanently deletes the product', async () => {
       mockPrisma.product.findUnique.mockResolvedValue(makeProduct());
-      mockPrisma.product.update.mockResolvedValue({});
+      mockPrisma.product.delete.mockResolvedValue({});
 
       await service.remove('prod-1');
 
-      expect(mockPrisma.product.update).toHaveBeenCalledWith(
-        expect.objectContaining({ data: { isActive: false } }),
+      expect(mockPrisma.product.delete).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'prod-1' } }),
       );
+      expect(mockPrisma.product.update).not.toHaveBeenCalled();
     });
   });
 
