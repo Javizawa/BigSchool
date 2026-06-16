@@ -13,7 +13,7 @@ export class WishlistApiService {
   }
 
   add(productId: string) {
-    return this.http.post<WishlistItem>(`${this.url}/${productId}`, {});
+    return this.http.post<WishlistItem>(this.url, { productId });
   }
 
   remove(productId: string) {

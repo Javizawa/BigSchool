@@ -4,6 +4,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AnalyticsPeriod } from '../dto/analytics-query.dto';
 
 const REVENUE_STATUSES: OrderStatus[] = [
+  OrderStatus.pending_payment,
   OrderStatus.confirmed,
   OrderStatus.processing,
   OrderStatus.shipped,
@@ -63,7 +64,7 @@ export class AdminAnalyticsService {
       this.prisma.productVariant.count({ where: { stock: { lte: 5 } } }),
       this.prisma.orderItem.groupBy({
         by: ['productSlug'],
-        _sum: { quantity: true },
+        _sum: { quantity: true, subtotal: true },
         where: {
           order: {
             status: { in: REVENUE_STATUSES },
@@ -95,7 +96,7 @@ export class AdminAnalyticsService {
           name: product.name,
           thumbnailUrl: product.thumbnailUrl,
           unitsSold,
-          revenue: 0,
+          revenue: Math.round(Number(r._sum.subtotal ?? 0) * 100) / 100,
         };
       })
       .filter(Boolean);

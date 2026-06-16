@@ -2328,7 +2328,7 @@ components:
 
     CreateProductRequest:
       type: object
-      required: [name, brandId, categoryId, gender, price, description]
+      required: [name, brandId, categoryId, gender, price]
       properties:
         name:
           type: string
@@ -2354,6 +2354,10 @@ components:
           nullable: true
         description:
           type: string
+          description: Descripción del producto. Si se omite, se guarda vacío.
+        isActive:
+          type: boolean
+          default: true
         thumbnailUrl:
           type: string
           format: uri
@@ -2692,14 +2696,14 @@ components:
 
     ValidateCouponRequest:
       type: object
-      required: [code, orderAmount]
+      required: [code, cartTotal]
       properties:
         code:
           type: string
-        orderAmount:
+        cartTotal:
           type: number
           format: float
-          description: Importe del pedido antes de aplicar el descuento
+          description: Importe del carrito antes de aplicar el descuento
 
     ValidateCouponResponse:
       type: object
@@ -2721,7 +2725,7 @@ components:
 
     CreateCouponRequest:
       type: object
-      required: [code, type, value, validFrom]
+      required: [code, type, value]
       properties:
         code:
           type: string
@@ -2738,6 +2742,7 @@ components:
         validFrom:
           type: string
           format: date-time
+          description: Fecha de inicio. Si se omite, se usa la fecha actual.
         validUntil:
           type: string
           format: date-time
@@ -2860,10 +2865,69 @@ components:
           nullable: true
           allOf:
             - $ref: '#/components/schemas/Tracking'
+        return:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/OrderReturn'
+          description: Datos de la devolución asociada, si existe.
         createdAt:
           type: string
           format: date-time
         updatedAt:
+          type: string
+          format: date-time
+
+    OrderReturn:
+      type: object
+      description: Resumen de la devolución asociada a un pedido.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ReturnStatus'
+        reason:
+          type: string
+        adminNotes:
+          type: string
+          nullable: true
+        refundAmount:
+          type: number
+          format: float
+          nullable: true
+          description: Importe reembolsado en EUR. Nulo hasta que el admin lo fije.
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+              orderItem:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  productName:
+                    type: string
+                  variantSku:
+                    type: string
+                  size:
+                    type: number
+                  color:
+                    type: string
+                  thumbnailUrl:
+                    type: string
+                    format: uri
+                    nullable: true
+                  unitPrice:
+                    type: number
+                    format: float
+        createdAt:
           type: string
           format: date-time
 

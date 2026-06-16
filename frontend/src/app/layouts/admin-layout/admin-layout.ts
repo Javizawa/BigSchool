@@ -1,18 +1,18 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { LogoComponent } from '../../shared/components/logo/logo';
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LogoComponent],
   template: `
     <div class="min-h-screen flex bg-gray-100">
       <!-- Sidebar -->
       <aside class="w-60 bg-gray-900 text-gray-300 flex flex-col shrink-0">
         <div class="px-6 py-5 border-b border-gray-800">
-          <a routerLink="/" class="text-lg font-black text-white">Big<span class="text-indigo-400">School</span></a>
-          <p class="text-xs text-gray-500 mt-0.5">Panel de administración</p>
+          <a routerLink="/"><app-logo [admin]="true" /></a>
         </div>
         <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
           @for (item of navItems; track item.path) {
@@ -24,10 +24,16 @@ import { AuthService } from '../../core/auth/auth.service';
             </a>
           }
         </nav>
-        <div class="px-4 py-4 border-t border-gray-800">
-          <p class="text-xs text-gray-500 mb-2 truncate">{{ auth.user()?.email }}</p>
+        <div class="px-4 py-4 border-t border-gray-800 space-y-3">
+          <p class="text-xs text-gray-500 truncate">{{ auth.user()?.email }}</p>
           <button (click)="auth.signOut()"
-            class="text-xs text-gray-400 hover:text-white transition-colors">Cerrar sesión</button>
+            class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gray-800 hover:bg-red-600 text-gray-300 hover:text-white text-sm font-medium transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 

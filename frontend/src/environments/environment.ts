@@ -1,11 +1,9 @@
-declare const __env: Record<string, string> | undefined;
-
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:3000/api/v1',
-  supabaseUrl: typeof __env !== 'undefined' ? (__env['NG_APP_SUPABASE_URL'] ?? '') : '',
-  supabaseAnonKey: typeof __env !== 'undefined' ? (__env['NG_APP_SUPABASE_ANON_KEY'] ?? '') : '',
-  cloudinaryCloudName: typeof __env !== 'undefined' ? (__env['NG_APP_CLOUDINARY_CLOUD_NAME'] ?? '') : '',
-  cloudinaryUploadPreset: typeof __env !== 'undefined' ? (__env['NG_APP_CLOUDINARY_UPLOAD_PRESET'] ?? '') : '',
-  stripePublishableKey: typeof __env !== 'undefined' ? (__env['NG_APP_STRIPE_PUBLISHABLE_KEY'] ?? '') : '',
+  supabaseUrl: 'https://fxmagkisbthptirwvzqg.supabase.co',
+  supabaseAnonKey: 'sb_publishable__IqX14621iZWPBu01H0xNg_-vAmHoQi',
+  cloudinaryCloudName: 'dmeo2rhs1',
+  cloudinaryUploadPreset: 'bigschool_products',
+  stripePublishableKey: 'pk_test_51TiXdgA6d2HSSi3JOemqLgSJHhd3AtLGFjBcDCLuOKabaNEhfm3qWkEy6T3qoEaAuvuGHaCfpQbTg8tsCfBQYMVK00n9EswHuZ',
 };

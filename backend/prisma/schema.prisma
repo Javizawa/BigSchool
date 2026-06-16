@@ -84,12 +84,15 @@ model User {
 model Address {
   id         String   @id @default(uuid())
   userId     String   @map("user_id")
-  alias      String
-  street     String
+  label      String
+  fullName   String   @map("full_name")
+  line1      String
+  line2      String?
   city       String
   province   String
   postalCode String   @map("postal_code")
   country    String   @default("ES")
+  phone      String?
   isDefault  Boolean  @default(false) @map("is_default")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")

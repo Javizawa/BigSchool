@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProductsApiService } from '../../../core/api/products.api';
 import { CartService } from '../../../core/services/cart.service';
+import { WishlistService } from '../../../core/services/wishlist.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { Product, ProductDetail, ProductVariant, Review } from '../../../core/models';
 import { ProductCardComponent } from '../../../shared/components/product-card/product-card';
@@ -18,6 +19,7 @@ import { PricePipe } from '../../../shared/pipes/price.pipe';
 export class ProductDetailPage implements OnInit {
   private readonly api = inject(ProductsApiService);
   private readonly cart = inject(CartService);
+  readonly wishlist = inject(WishlistService);
   readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

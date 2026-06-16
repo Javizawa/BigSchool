@@ -83,7 +83,7 @@
                 <span class="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
                 Procesando pago...
               } @else {
-                🔒 Pagar {{ subtotal | price }}
+                🔒 Pagar {{ total | price }}
               }
             </button>
 
@@ -112,9 +112,21 @@
               </div>
             }
           </div>
-          <div class="border-t border-gray-100 mt-4 pt-4 flex justify-between font-bold">
-            <span>Total</span>
-            <span>{{ subtotal | price }}</span>
+          <div class="border-t border-gray-100 mt-4 pt-4 space-y-2">
+            <div class="flex justify-between text-sm text-gray-600">
+              <span>Subtotal</span>
+              <span>{{ subtotal | price }}</span>
+            </div>
+            @if (couponDiscount() > 0) {
+              <div class="flex justify-between text-sm text-green-600 font-medium">
+                <span>Descuento ({{ couponCode }})</span>
+                <span>-{{ couponDiscount() | price }}</span>
+              </div>
+            }
+            <div class="flex justify-between font-bold text-gray-900 border-t border-gray-100 pt-2">
+              <span>Total</span>
+              <span>{{ total | price }}</span>
+            </div>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Product } from '../../../core/models';
+import { WishlistService } from '../../../core/services/wishlist.service';
 import { PricePipe } from '../../pipes/price.pipe';
 
 @Component({
@@ -24,6 +25,16 @@ import { PricePipe } from '../../pipes/price.pipe';
         @if (product().salePrice) {
           <span class="absolute top-2 left-2 bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full">SALE</span>
         }
+        <button type="button"
+          (click)="wishlist.toggle(product().id, $event)"
+          class="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-sm transition-colors hover:bg-white"
+          [attr.aria-label]="wishlist.ids().has(product().id) ? 'Quitar de favoritos' : 'Añadir a favoritos'">
+          <svg class="w-4 h-4 transition-colors" viewBox="0 0 24 24" stroke-width="2"
+            [attr.fill]="wishlist.ids().has(product().id) ? '#ef4444' : 'none'"
+            [attr.stroke]="wishlist.ids().has(product().id) ? '#ef4444' : '#9ca3af'">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+        </button>
       </div>
       <div class="p-4 flex flex-col gap-1">
         <p class="text-xs text-gray-400 font-medium uppercase tracking-wide">{{ product().brand.name }}</p>
@@ -49,4 +60,5 @@ import { PricePipe } from '../../pipes/price.pipe';
 })
 export class ProductCardComponent {
   product = input.required<Product>();
+  readonly wishlist = inject(WishlistService);
 }

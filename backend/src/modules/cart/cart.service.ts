@@ -228,12 +228,12 @@ export class CartService {
         variant: {
           ...variant,
           size: Number(variant.size),
-        },
-        product: {
-          ...product,
-          price: Number(product.price),
-          salePrice:
-            product.salePrice !== null ? Number(product.salePrice) : null,
+          product: {
+            ...product,
+            price: Number(product.price),
+            salePrice:
+              product.salePrice !== null ? Number(product.salePrice) : null,
+          },
         },
         quantity: item.quantity,
         unitPrice,

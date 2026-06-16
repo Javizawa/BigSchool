@@ -141,7 +141,7 @@ export class AdminApiService {
     return this.http.get<PagedResult<AdminReturn>>(`${this.base}/returns`, { params });
   }
 
-  updateReturn(id: string, dto: { status: string }) {
+  updateReturn(id: string, dto: { status: string; adminNotes?: string; refundAmount?: number | null }) {
     return this.http.patch<AdminReturn>(`${this.base}/returns/${id}`, dto);
   }
 }

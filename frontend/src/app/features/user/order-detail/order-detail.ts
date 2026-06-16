@@ -4,6 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { OrdersApiService } from '../../../core/api/orders.api';
 import { Order, OrderItem } from '../../../core/models';
+
+const RETURN_STATUS_LABEL: Record<string, string> = {
+  requested: 'Solicitud recibida',
+  approved: 'Aprobada',
+  rejected: 'Rechazada',
+  completed: 'Completada',
+  refunded: 'Reembolsada',
+};
 import { PricePipe } from '../../../shared/pipes/price.pipe';
 import { SpinnerComponent } from '../../../shared/components/spinner/spinner';
 
@@ -17,6 +25,32 @@ interface ReturnItem {
   quantity: number;
   selected: boolean;
 }
+
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  pending_payment: 'Pago pendiente',
+  payment_failed: 'Pago fallido',
+  confirmed: 'Confirmado',
+  processing: 'En preparación',
+  shipped: 'Enviado',
+  delivered: 'Entregado',
+  cancelled: 'Cancelado',
+  return_requested: 'Devolución solicitada',
+  return_approved: 'Devolución aprobada',
+  refunded: 'Reembolsado',
+};
+
+const ORDER_STATUS_CLASSES: Record<string, string> = {
+  pending_payment: 'bg-yellow-100 text-yellow-700',
+  payment_failed: 'bg-red-100 text-red-700',
+  confirmed: 'bg-blue-100 text-blue-700',
+  processing: 'bg-indigo-100 text-indigo-700',
+  shipped: 'bg-purple-100 text-purple-700',
+  delivered: 'bg-green-100 text-green-700',
+  cancelled: 'bg-gray-100 text-gray-500',
+  return_requested: 'bg-amber-100 text-amber-700',
+  return_approved: 'bg-orange-100 text-orange-700',
+  refunded: 'bg-teal-100 text-teal-700',
+};
 
 const RETURN_REASONS = [
   'Cambio de opinión',
@@ -49,6 +83,9 @@ export class OrderDetailPage implements OnInit {
   returnReason = '';
 
   readonly reasons = RETURN_REASONS;
+  readonly statusLabel = ORDER_STATUS_LABEL;
+  readonly statusClasses = ORDER_STATUS_CLASSES;
+  readonly returnStatusLabel = RETURN_STATUS_LABEL;
 
   ngOnInit(): void {
     this.route.params.subscribe(({ id }) => {
