@@ -16,7 +16,8 @@
     <div class="space-y-3">
       @for (r of res.data; track r.id) {
         <div class="bg-white rounded-2xl border border-gray-100 p-5 cursor-pointer hover:border-gray-200 transition-colors"
-             (click)="openPanel(r)">
+             role="button" tabindex="0"
+             (click)="openPanel(r)" (keydown.enter)="openPanel(r)" (keydown.space)="openPanel(r)">
           <div class="flex items-start justify-between">
             <div class="min-w-0">
               <div class="flex items-center gap-3 mb-1">
