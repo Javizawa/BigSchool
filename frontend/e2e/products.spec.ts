@@ -23,7 +23,8 @@ test('brand filter appears in sidebar', async ({ page }) => {
   await page.goto('/products');
   // Options are inside a dropdown — open it first
   await page.locator('aside app-filter-select').nth(2).getByRole('button').first().click();
-  await expect(page.getByText('Nike')).toBeVisible();
+  // Scope within the dropdown to avoid matching brand names in product cards
+  await expect(page.locator('aside app-filter-select').nth(2).getByText('Nike')).toBeVisible();
 });
 
 test('searching filters products by making a new request', async ({ page }) => {

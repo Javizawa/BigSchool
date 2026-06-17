@@ -57,6 +57,6 @@ export class AdminLayout {
     { path: 'users', label: 'Usuarios', icon: '👥' },
     { path: 'coupons', label: 'Cupones', icon: '🏷️' },
     { path: 'categories', label: 'Categorías', icon: '📂' },
-    { path: 'brands', label: 'Marcas', icon: '👟' },
+    { path: 'brands', label: 'Marcas', icon: '🛡️' },
   ];
 }

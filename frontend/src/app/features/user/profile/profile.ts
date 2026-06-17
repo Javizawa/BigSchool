@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { UsersApiService } from '../../../core/api/users.api';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -42,7 +42,7 @@ import { AuthService } from '../../../core/auth/auth.service';
     </div>
   `,
 })
-export class ProfilePage implements OnInit {
+export class ProfilePage {
   readonly auth = inject(AuthService);
   private readonly usersApi = inject(UsersApiService);
 
@@ -52,13 +52,18 @@ export class ProfilePage implements OnInit {
   readonly saving = signal(false);
   readonly saved = signal(false);
 
-ngOnInit(): void {
-    const u = this.auth.user();
-    if (u) {
-      this.firstName = u.firstName ?? '';
-      this.lastName = u.lastName ?? '';
-      this.phone = u.phone ?? '';
-    }
+  private populated = false;
+
+  constructor() {
+    effect(() => {
+      const u = this.auth.user();
+      if (u && !this.populated) {
+        this.firstName = u.firstName ?? '';
+        this.lastName = u.lastName ?? '';
+        this.phone = u.phone ?? '';
+        this.populated = true;
+      }
+    });
   }
 
   save(): void {
