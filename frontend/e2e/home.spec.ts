@@ -35,6 +35,10 @@ test('sale product shows SALE badge', async ({ page }) => {
 });
 
 test('product card links to detail page', async ({ page }) => {
+  // Mock the detail endpoint so the ProductDetailPage doesn't redirect on error
+  await page.route('**/api/v1/products/1', (route) =>
+    route.fulfill({ json: { ...mockProduct('1'), variants: [] } }),
+  );
   await page.goto('/');
 
   await page.getByText('Air Max 1').first().click();
