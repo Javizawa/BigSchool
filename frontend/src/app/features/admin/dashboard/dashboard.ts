@@ -33,7 +33,7 @@ type Period = 'today' | 'week' | 'month' | 'year';
         <!-- KPI cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div class="bg-white rounded-2xl border border-gray-100 p-5">
-            <p class="text-sm text-gray-500 mb-1">Revenue</p>
+            <p class="text-sm text-gray-500 mb-1">Ganancias</p>
             <p class="text-2xl font-black text-gray-900">{{ d.revenue | price }}</p>
           </div>
           <div class="bg-white rounded-2xl border border-gray-100 p-5">
