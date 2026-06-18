@@ -5,7 +5,7 @@ import { ProductsService } from './products.service';
 import { ProductSortBy } from './dto/list-products.dto';
 
 const mockPrisma = {
-  product: { findMany: jest.fn(), findUnique: jest.fn(), count: jest.fn() },
+  product: { findMany: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn(), count: jest.fn() },
   review: { groupBy: jest.fn() },
   user: { findUnique: jest.fn() },
   productVariant: { findUnique: jest.fn() },
@@ -99,24 +99,22 @@ describe('ProductsService', () => {
     const detailProduct = { ...baseProduct, variants: [], seo: null };
 
     it('throws NotFoundException when product does not exist', async () => {
-      mockPrisma.product.findUnique.mockResolvedValue(null);
+      mockPrisma.product.findFirst.mockResolvedValue(null);
       await expect(service.findOne('missing-id')).rejects.toThrow(
         NotFoundException,
       );
     });
 
     it('throws NotFoundException when product is inactive', async () => {
-      mockPrisma.product.findUnique.mockResolvedValue({
-        ...detailProduct,
-        isActive: false,
-      });
+      // The service queries with isActive: true, so inactive products are filtered at DB level → null
+      mockPrisma.product.findFirst.mockResolvedValue(null);
       await expect(service.findOne('prod-1')).rejects.toThrow(
         NotFoundException,
       );
     });
 
     it('returns product detail for an active product', async () => {
-      mockPrisma.product.findUnique.mockResolvedValue(detailProduct);
+      mockPrisma.product.findFirst.mockResolvedValue(detailProduct);
       mockPrisma.review.groupBy.mockResolvedValue([]);
 
       const result = await service.findOne('prod-1');

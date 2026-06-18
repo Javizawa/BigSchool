@@ -9,7 +9,7 @@ import { ReviewsService } from './reviews.service';
 
 const mockPrisma = {
   user: { findUnique: jest.fn() },
-  product: { findUnique: jest.fn() },
+  product: { findFirst: jest.fn() },
   review: {
     findUnique: jest.fn(),
     create: jest.fn(),
@@ -56,7 +56,7 @@ describe('ReviewsService', () => {
   describe('create', () => {
     beforeEach(() => {
       mockPrisma.user.findUnique.mockResolvedValue(dbUser);
-      mockPrisma.product.findUnique.mockResolvedValue({ id: 'prod-1' });
+      mockPrisma.product.findFirst.mockResolvedValue({ id: 'prod-1' });
       mockPrisma.review.findUnique.mockResolvedValue(null);
       mockPrisma.productVariant.findMany.mockResolvedValue([]);
       mockPrisma.review.create.mockResolvedValue(reviewWithUser);
@@ -70,7 +70,7 @@ describe('ReviewsService', () => {
     });
 
     it('throws NotFoundException when product is inactive or missing', async () => {
-      mockPrisma.product.findUnique.mockResolvedValue(null);
+      mockPrisma.product.findFirst.mockResolvedValue(null);
       await expect(
         service.create(supabaseUser, 'prod-1', { rating: 5, body: 'Good' }),
       ).rejects.toThrow(NotFoundException);
