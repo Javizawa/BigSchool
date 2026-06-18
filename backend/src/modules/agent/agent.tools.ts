@@ -179,12 +179,15 @@ export class AgentToolsExecutor {
     const where: Prisma.ProductWhereInput = { isActive: true };
     if (brandId) where.brandId = brandId;
     if (categoryId) where.categoryId = categoryId;
-    if (args.gender) where.gender = String(args.gender).toLowerCase() as Gender;
+    const gender = typeof args.gender === 'string' ? args.gender.toLowerCase() as Gender : undefined;
+    const query = typeof args.query === 'string' ? args.query : undefined;
+
+    if (gender) where.gender = gender;
     if (args.onSale) where.salePrice = { not: null };
-    if (args.query) {
+    if (query) {
       where.OR = [
-        { name: { contains: String(args.query), mode: 'insensitive' } },
-        { description: { contains: String(args.query), mode: 'insensitive' } },
+        { name: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
       ];
     }
     if (args.minPrice !== undefined || args.maxPrice !== undefined) {
@@ -236,11 +239,14 @@ export class AgentToolsExecutor {
   }
 
   private async getProductDetails(args: Record<string, unknown>) {
+    const productId = typeof args.productId === 'string' ? args.productId : undefined;
+    const slug = typeof args.slug === 'string' ? args.slug : undefined;
+
     const product = await this.prisma.product.findFirst({
       where: {
         isActive: true,
-        ...(args.productId ? { id: String(args.productId) } : {}),
-        ...(args.slug ? { slug: String(args.slug) } : {}),
+        ...(productId ? { id: productId } : {}),
+        ...(slug ? { slug } : {}),
       },
       select: {
         id: true,
@@ -289,7 +295,7 @@ export class AgentToolsExecutor {
 
   private async recommendProducts(args: Record<string, unknown>) {
     const limit = Math.min(Number(args.limit ?? 4), 6);
-    const productId = String(args.productId);
+    const productId = typeof args.productId === 'string' ? args.productId : '';
 
     const source = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -388,7 +394,7 @@ export class AgentToolsExecutor {
   }
 
   private async getSalesAnalytics(args: Record<string, unknown>) {
-    const period = String(args.period ?? 'month');
+    const period = typeof args.period === 'string' ? args.period : 'month';
     const now = new Date();
     let from: Date;
 
