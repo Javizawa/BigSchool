@@ -1,6 +1,6 @@
 import { Injectable, Logger, ServiceUnavailableException, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, type SupabaseClient, type User as SupabaseUser } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import Groq from 'groq-sdk';
 import type { ChatCompletion } from 'groq-sdk/resources/chat/completions';
 import { randomUUID } from 'crypto';
@@ -69,7 +69,7 @@ export class AgentService {
   private readonly groq: Groq;
   private readonly sessions = new Map<string, Session>();
   private readonly toolsExecutor: AgentToolsExecutor;
-  private readonly supabase: SupabaseClient;
+  private readonly supabase: ReturnType<typeof createClient>;
 
   constructor(
     private readonly prisma: PrismaService,
