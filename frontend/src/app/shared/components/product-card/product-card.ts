@@ -38,7 +38,7 @@ import { PricePipe } from '../../pipes/price.pipe';
       </div>
       <div class="p-4 flex flex-col gap-1">
         <p class="text-xs text-gray-400 font-medium uppercase tracking-wide">{{ product().brand.name }}</p>
-        <h3 class="font-semibold text-gray-900 line-clamp-2 group-hover:text-indigo-600 transition-colors">{{ product().name }}</h3>
+        <h3 class="font-semibold text-gray-900 line-clamp-2 min-h-[3rem] group-hover:text-indigo-600 transition-colors">{{ product().name }}</h3>
         @if (product().reviewCount > 0) {
           <div class="flex items-center gap-1 text-sm text-gray-500">
             <span class="text-yellow-400">★</span>

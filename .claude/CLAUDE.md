@@ -11,6 +11,7 @@
 | Pagos | Stripe | PaymentIntent + webhooks |
 | Estilos | Tailwind CSS + Angular CDK | Libertad de diseño sin imponer sistema visual |
 | API spec | OpenAPI 3.1 — `docs/openapi/openapi.yaml` | Fuente de verdad (design-first) |
+| Agente IA | Groq (Llama 3.3 70B) — `groq-sdk` | Inferencia gratuita con tool calling |
 
 ## Estructura del proyecto
 
@@ -64,6 +65,8 @@ Transformaciones: añadir parámetros a la URL → `f_auto,q_auto,w_400`
 **Solo ADMIN:** `/admin/*` — productos, variantes, categorías, marcas, pedidos, usuarios, cupones, devoluciones, analytics
 
 **Webhooks:** `/webhooks/stripe` (sin auth JWT, verificación por firma Stripe)
+
+**Agente IA:** `POST /agent/chat` — auth opcional; herramientas disponibles según rol (anónimo, USER, ADMIN). Proveedor: Groq (Llama 3.3 70B). Sesión conversacional por `sessionId` UUID.
 
 ## Flujo de trabajo design-first
 

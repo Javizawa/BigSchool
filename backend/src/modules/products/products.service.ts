@@ -128,22 +128,23 @@ export class ProductsService {
     };
   }
 
-  async findOne(productId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+  async findOne(idOrSlug: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { isActive: true, OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
       include: DETAIL_INCLUDE,
     });
 
-    if (!product || !product.isActive)
-      throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException('Product not found');
 
-    const stats = await this.getReviewStats([productId]);
+    const stats = await this.getReviewStats([product.id]);
     return this.mapProductDetail(product, stats);
   }
 
-  async findRelated(productId: string, limit: number) {
+  async findRelated(idOrSlug: string, limit: number) {
+    const id = await this.resolveProductId(idOrSlug);
+
     const product = await this.prisma.product.findUnique({
-      where: { id: productId },
+      where: { id },
       select: { categoryId: true, brandId: true },
     });
 
@@ -152,7 +153,7 @@ export class ProductsService {
     const related = await this.prisma.product.findMany({
       where: {
         isActive: true,
-        id: { not: productId },
+        id: { not: id },
         OR: [{ categoryId: product.categoryId }, { brandId: product.brandId }],
       },
       take: limit,
@@ -162,6 +163,34 @@ export class ProductsService {
 
     const stats = await this.getReviewStats(related.map((p) => p.id));
     return related.map((p) => this.mapProduct(p, stats));
+  }
+
+  async findReviews(idOrSlug: string, page = 1, limit = 10) {
+    const id = await this.resolveProductId(idOrSlug);
+
+    const [data, total] = await Promise.all([
+      this.prisma.review.findMany({
+        where: { productId: id },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
+        },
+      }),
+      this.prisma.review.count({ where: { productId: id } }),
+    ]);
+
+    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  }
+
+  private async resolveProductId(idOrSlug: string): Promise<string> {
+    const product = await this.prisma.product.findFirst({
+      where: { isActive: true, OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
+      select: { id: true },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+    return product.id;
   }
 
   private async getReviewStats(productIds: string[]): Promise<ReviewStats> {

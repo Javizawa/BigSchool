@@ -19,6 +19,7 @@ import { SizeGuideModule } from './modules/size-guide/size-guide.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { AgentModule } from './modules/agent/agent.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     NewsletterModule,
     AdminModule,
     WebhooksModule,
+    AgentModule,
   ],
   providers: [
     // Guard global: todas las rutas requieren auth salvo las marcadas con @Public()
