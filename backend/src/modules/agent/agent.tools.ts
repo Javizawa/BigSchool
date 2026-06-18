@@ -155,19 +155,22 @@ export class AgentToolsExecutor {
   private async searchProducts(args: Record<string, unknown>) {
     const limit = Math.min(Number(args.limit ?? 5), 10);
 
+    const brandName = typeof args.brandName === 'string' ? args.brandName : undefined;
+    const categoryName = typeof args.categoryName === 'string' ? args.categoryName : undefined;
+
     let brandId: string | undefined;
-    if (args.brandName) {
+    if (brandName) {
       const brand = await this.prisma.brand.findFirst({
-        where: { name: { contains: String(args.brandName), mode: 'insensitive' } },
+        where: { name: { contains: brandName, mode: 'insensitive' } },
         select: { id: true },
       });
       brandId = brand?.id;
     }
 
     let categoryId: string | undefined;
-    if (args.categoryName) {
+    if (categoryName) {
       const cat = await this.prisma.category.findFirst({
-        where: { name: { contains: String(args.categoryName), mode: 'insensitive' } },
+        where: { name: { contains: categoryName, mode: 'insensitive' } },
         select: { id: true },
       });
       categoryId = cat?.id;

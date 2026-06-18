@@ -1,7 +1,8 @@
 import { Injectable, Logger, ServiceUnavailableException, HttpException, HttpStatus } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type User as SupabaseUser } from '@supabase/supabase-js';
 import Groq from 'groq-sdk';
+import type { ChatCompletion } from 'groq-sdk/resources/chat/completions';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AgentChatDto } from './dto/agent-chat.dto';
@@ -120,7 +121,7 @@ export class AgentService {
     const history = [{ role: 'system' as const, content: SYSTEM_PROMPT }, ...messages];
 
     for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
-      let response;
+      let response: ChatCompletion;
       try {
         response = await this.groq.chat.completions.create({
           model: 'llama-3.3-70b-versatile',
@@ -213,8 +214,11 @@ export class AgentService {
       const { data: { user }, error } = await this.supabase.auth.getUser(token);
       if (error || !user) return { role: 'anonymous' };
 
-      const isAdmin = user.app_metadata?.role === 'ADMIN' || user.user_metadata?.role === 'ADMIN';
-      return { supabaseId: user.id, role: isAdmin ? 'admin' : 'user' };
+      const supabaseUser = user as SupabaseUser;
+      const isAdmin =
+        (supabaseUser.app_metadata as Record<string, unknown>)?.['role'] === 'ADMIN' ||
+        (supabaseUser.user_metadata as Record<string, unknown>)?.['role'] === 'ADMIN';
+      return { supabaseId: supabaseUser.id, role: isAdmin ? 'admin' : 'user' };
     } catch {
       return { role: 'anonymous' };
     }

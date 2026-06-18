@@ -63,7 +63,9 @@
             <div
               class="max-w-[85%] px-3 py-2 rounded-2xl rounded-bl-sm bg-white border border-gray-200 text-gray-800 text-sm chat-markdown"
               [innerHTML]="msg.html ?? msg.text"
+              tabindex="0"
               (click)="handleMarkdownClick($event)"
+              (keydown)="handleMarkdownClick($event)"
             ></div>
           }
         </div>

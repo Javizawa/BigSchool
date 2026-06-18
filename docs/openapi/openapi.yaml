@@ -1929,7 +1929,7 @@ paths:
                 sessionId: 550e8400-e29b-41d4-a716-446655440000
                 toolsUsed: [search_products]
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/ValidationError'
         '429':
           description: Límite de peticiones alcanzado (Groq free tier)
           content:
