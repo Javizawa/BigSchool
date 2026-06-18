@@ -102,7 +102,9 @@ export class ChatWidgetComponent {
     }
   }
 
-  handleMarkdownClick(event: MouseEvent) {
+  handleMarkdownClick(event: MouseEvent | KeyboardEvent) {
+    if (event instanceof KeyboardEvent && event.key !== 'Enter' && event.key !== ' ') return;
+
     const target = event.target as HTMLElement;
     const anchor = target.closest('a');
     if (!anchor) return;
