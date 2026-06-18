@@ -1,6 +1,12 @@
-import { Injectable, Logger, ServiceUnavailableException, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type User } from '@supabase/supabase-js';
 import Groq from 'groq-sdk';
 import type { ChatCompletion } from 'groq-sdk/resources/chat/completions';
 import { randomUUID } from 'crypto';
@@ -76,7 +82,8 @@ export class AgentService {
     private readonly config: ConfigService,
   ) {
     const apiKey = this.config.get<string>('GROQ_API_KEY');
-    if (!apiKey) this.logger.warn('GROQ_API_KEY no configurada — el agente no funcionará');
+    if (!apiKey)
+      this.logger.warn('GROQ_API_KEY no configurada — el agente no funcionará');
 
     this.groq = new Groq({ apiKey });
     this.toolsExecutor = new AgentToolsExecutor(prisma);
@@ -101,7 +108,12 @@ export class AgentService {
     const toolsUsed: ToolName[] = [];
 
     try {
-      const reply = await this.runAgentLoop(session.messages, tools, toolsUsed, supabaseId);
+      const reply = await this.runAgentLoop(
+        session.messages,
+        tools,
+        toolsUsed,
+        supabaseId,
+      );
       session.messages.push({ role: 'assistant', content: reply });
 
       return { reply, sessionId, toolsUsed };
@@ -118,21 +130,29 @@ export class AgentService {
     toolsUsed: ToolName[],
     supabaseId?: string,
   ): Promise<string> {
-    const history = [{ role: 'system' as const, content: SYSTEM_PROMPT }, ...messages];
+    const history = [
+      { role: 'system' as const, content: SYSTEM_PROMPT },
+      ...messages,
+    ];
 
     for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
       let response: ChatCompletion;
       try {
         response = await this.groq.chat.completions.create({
           model: 'llama-3.3-70b-versatile',
-          messages: history as Parameters<typeof this.groq.chat.completions.create>[0]['messages'],
-          tools: tools as Parameters<typeof this.groq.chat.completions.create>[0]['tools'],
+          messages: history as Parameters<
+            typeof this.groq.chat.completions.create
+          >[0]['messages'],
+          tools: tools,
           tool_choice: 'auto',
           temperature: 0.3,
           max_tokens: 1024,
         });
       } catch (err: unknown) {
-        const error = err as { status?: number; error?: { error?: { code?: string } } };
+        const error = err as {
+          status?: number;
+          error?: { error?: { code?: string } };
+        };
         this.logger.error('Groq API error', error);
 
         if (error.status === 429) {
@@ -143,32 +163,49 @@ export class AgentService {
         }
 
         // El modelo generó argumentos inválidos para una herramienta — reintentamos sin herramientas
-        if (error.status === 400 && error.error?.error?.code === 'tool_use_failed') {
+        if (
+          error.status === 400 &&
+          error.error?.error?.code === 'tool_use_failed'
+        ) {
           this.logger.warn('tool_use_failed — reintentando sin herramientas');
           const fallback = await this.groq.chat.completions.create({
             model: 'llama-3.3-70b-versatile',
-            messages: history as Parameters<typeof this.groq.chat.completions.create>[0]['messages'],
+            messages: history as Parameters<
+              typeof this.groq.chat.completions.create
+            >[0]['messages'],
             tool_choice: 'none',
             temperature: 0.3,
             max_tokens: 1024,
           });
-          return fallback.choices[0].message.content ?? 'Lo siento, no pude generar una respuesta.';
+          return (
+            fallback.choices[0].message.content ??
+            'Lo siento, no pude generar una respuesta.'
+          );
         }
 
-        throw new ServiceUnavailableException('El servicio de IA no está disponible temporalmente.');
+        throw new ServiceUnavailableException(
+          'El servicio de IA no está disponible temporalmente.',
+        );
       }
 
       const choice = response.choices[0];
 
-      if (choice.finish_reason === 'stop' || !choice.message.tool_calls?.length) {
-        return choice.message.content ?? 'Lo siento, no pude generar una respuesta.';
+      if (
+        choice.finish_reason === 'stop' ||
+        !choice.message.tool_calls?.length
+      ) {
+        return (
+          choice.message.content ?? 'Lo siento, no pude generar una respuesta.'
+        );
       }
 
       // El modelo quiere llamar herramientas
       history.push({
         role: 'assistant',
         content: choice.message.content ?? '',
-        ...(choice.message.tool_calls && { tool_calls: choice.message.tool_calls }),
+        ...(choice.message.tool_calls && {
+          tool_calls: choice.message.tool_calls,
+        }),
       } as unknown as Message);
 
       for (const toolCall of choice.message.tool_calls) {
@@ -176,14 +213,21 @@ export class AgentService {
         let toolArgs: Record<string, unknown> = {};
 
         try {
-          toolArgs = JSON.parse(toolCall.function.arguments) as Record<string, unknown>;
+          toolArgs = JSON.parse(toolCall.function.arguments) as Record<
+            string,
+            unknown
+          >;
         } catch {
           this.logger.warn(`Argumentos inválidos para herramienta ${toolName}`);
         }
 
         this.logger.debug(`Ejecutando herramienta: ${toolName}`, toolArgs);
 
-        const result = await this.toolsExecutor.execute(toolName, toolArgs, supabaseId);
+        const result = await this.toolsExecutor.execute(
+          toolName,
+          toolArgs,
+          supabaseId,
+        );
 
         if (!toolsUsed.includes(toolName)) toolsUsed.push(toolName);
 
@@ -199,26 +243,36 @@ export class AgentService {
     // Si se agotaron las iteraciones, pedimos respuesta sin más herramientas
     const finalResponse = await this.groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
-      messages: history as Parameters<typeof this.groq.chat.completions.create>[0]['messages'],
+      messages: history as Parameters<
+        typeof this.groq.chat.completions.create
+      >[0]['messages'],
       temperature: 0.3,
       max_tokens: 1024,
     });
 
-    return finalResponse.choices[0].message.content ?? 'No pude completar la solicitud.';
+    return (
+      finalResponse.choices[0].message.content ??
+      'No pude completar la solicitud.'
+    );
   }
 
-  private async resolveAuth(token?: string): Promise<{ supabaseId?: string; role: 'anonymous' | 'user' | 'admin' }> {
+  private async resolveAuth(
+    token?: string,
+  ): Promise<{ supabaseId?: string; role: 'anonymous' | 'user' | 'admin' }> {
     if (!token) return { role: 'anonymous' };
 
     try {
-      const { data: { user }, error } = await this.supabase.auth.getUser(token);
-      if (error || !user) return { role: 'anonymous' };
-
-      const supabaseUser = user as SupabaseUser;
+      const result = (await this.supabase.auth.getUser(token)) as {
+        data: { user: User | null };
+        error: unknown;
+      };
+      const user: User | null = result.data.user;
+      if (!user) return { role: 'anonymous' };
+      const appMeta = user.app_metadata as Record<string, unknown>;
+      const userMeta = user.user_metadata as Record<string, unknown>;
       const isAdmin =
-        (supabaseUser.app_metadata as Record<string, unknown>)?.['role'] === 'ADMIN' ||
-        (supabaseUser.user_metadata as Record<string, unknown>)?.['role'] === 'ADMIN';
-      return { supabaseId: supabaseUser.id, role: isAdmin ? 'admin' : 'user' };
+        appMeta?.['role'] === 'ADMIN' || userMeta?.['role'] === 'ADMIN';
+      return { supabaseId: user.id, role: isAdmin ? 'admin' : 'user' };
     } catch {
       return { role: 'anonymous' };
     }
