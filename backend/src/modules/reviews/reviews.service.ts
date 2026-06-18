@@ -31,19 +31,21 @@ export class ReviewsService {
   ) {
     const user = await this.resolveUser(supabaseUser.id);
 
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId, isActive: true },
+    const product = await this.prisma.product.findFirst({
+      where: { isActive: true, OR: [{ id: productId }, { slug: productId }] },
     });
     if (!product) throw new NotFoundException('Product not found');
 
+    const resolvedId = product.id;
+
     const existing = await this.prisma.review.findUnique({
-      where: { userId_productId: { userId: user.id, productId } },
+      where: { userId_productId: { userId: user.id, productId: resolvedId } },
     });
     if (existing)
       throw new ConflictException('You have already reviewed this product');
 
     const variantSkus = await this.prisma.productVariant.findMany({
-      where: { productId },
+      where: { productId: resolvedId },
       select: { sku: true },
     });
     const skus = variantSkus.map((v) => v.sku);
@@ -69,7 +71,7 @@ export class ReviewsService {
 
     const review = await this.prisma.review.create({
       data: {
-        productId,
+        productId: resolvedId,
         userId: user.id,
         rating: dto.rating,
         title: dto.title ?? null,

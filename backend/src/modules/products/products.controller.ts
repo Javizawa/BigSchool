@@ -39,6 +39,16 @@ export class ProductsController {
     return this.service.findRelated(id, Math.min(limit, 20));
   }
 
+  @Get(':productId/reviews')
+  @Public()
+  findReviews(
+    @Param('productId') id: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.service.findReviews(id, page, Math.min(limit, 50));
+  }
+
   @Post(':productId/variants/:variantId/notify-stock')
   @HttpCode(201)
   subscribeStockNotification(

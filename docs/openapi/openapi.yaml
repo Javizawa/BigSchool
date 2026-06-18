@@ -71,6 +71,8 @@ tags:
     description: Panel de administración (requiere rol ADMIN)
   - name: webhooks
     description: Webhooks de servicios externos
+  - name: agent
+    description: Asistente conversacional impulsado por IA (Groq + Llama 3.3 70B)
 
 paths:
 
@@ -1875,6 +1877,72 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  # ===========================================================================
+  # AGENT
+  # ===========================================================================
+
+  /agent/chat:
+    post:
+      tags: [agent]
+      summary: Enviar un mensaje al asistente de BigSchool
+      operationId: agentChat
+      description: |
+        Endpoint conversacional impulsado por IA (Groq + Llama 3.3 70B).
+
+        El asistente puede buscar productos, dar recomendaciones y, si el usuario
+        está autenticado, consultar el estado de sus pedidos. Los administradores
+        tienen acceso adicional a métricas de ventas.
+
+        Si no se proporciona `sessionId`, se inicia una nueva conversación.
+        Para mantener el contexto entre mensajes, incluir el `sessionId` devuelto
+        en la respuesta anterior.
+
+        **Herramientas disponibles por rol:**
+
+        | Herramienta          | Anónimo | USER | ADMIN |
+        |----------------------|:-------:|:----:|:-----:|
+        | search_products      | ✓       | ✓    | ✓     |
+        | get_product_details  | ✓       | ✓    | ✓     |
+        | recommend_products   | ✓       | ✓    | ✓     |
+        | get_order_status     | —       | ✓    | ✓     |
+        | get_sales_analytics  | —       | —    | ✓     |
+      security:
+        - {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentChatRequest'
+            example:
+              message: Busco unas Nike de running, talla 42, por menos de 120€
+      responses:
+        '200':
+          description: Respuesta del asistente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentChatResponse'
+              example:
+                reply: He encontrado 3 modelos que encajan con tu búsqueda. El Nike React Miler 3 (talla 42, 109,99€) es el más valorado con 4.7 estrellas...
+                sessionId: 550e8400-e29b-41d4-a716-446655440000
+                toolsUsed: [search_products]
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          description: Límite de peticiones alcanzado (Groq free tier)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Servicio de IA no disponible temporalmente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 # ===========================================================================
 # COMPONENTS
 # ===========================================================================
@@ -3145,6 +3213,49 @@ components:
               revenue:
                 type: number
                 format: float
+
+    # ─── AGENT ───────────────────────────────────────────────────────────────
+
+    AgentChatRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Mensaje del usuario al asistente
+          example: Busco unas Nike de running, talla 42, por menos de 120€
+        sessionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: |
+            ID de sesión para mantener el contexto conversacional.
+            Si se omite, se inicia una nueva conversación.
+
+    AgentChatResponse:
+      type: object
+      properties:
+        reply:
+          type: string
+          description: Respuesta generada por el asistente
+          example: He encontrado 3 modelos que encajan con tu búsqueda...
+        sessionId:
+          type: string
+          format: uuid
+          description: ID de sesión (nuevo o el mismo recibido en la petición)
+        toolsUsed:
+          type: array
+          description: Herramientas utilizadas por el agente para generar la respuesta
+          items:
+            type: string
+            enum:
+              - search_products
+              - get_product_details
+              - recommend_products
+              - get_order_status
+              - get_sales_analytics
 
     # ─── SHARED ──────────────────────────────────────────────────────────────
 

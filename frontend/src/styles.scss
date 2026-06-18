@@ -1,2 +1,27 @@
 @use "tailwindcss";
 @source "../src";
+
+/* Markdown dentro del chat del asistente */
+.chat-markdown {
+  line-height: 1.55;
+
+  p { margin-bottom: 0.6rem; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 600; }
+  del { text-decoration: line-through; color: #9ca3af; }
+
+  ul, ol { padding-left: 1.2rem; margin-bottom: 0.6rem; }
+  ul { list-style: disc; }
+  ol { list-style: decimal; }
+  li { margin-bottom: 0.2rem; }
+
+  a {
+    color: #4f46e5;
+    text-decoration: underline;
+    word-break: break-all;
+    &:hover { color: #3730a3; }
+  }
+
+  hr { border-color: #e5e7eb; margin: 0.6rem 0; }
+}

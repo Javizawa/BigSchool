@@ -2,10 +2,11 @@ import { Component, effect, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { WishlistService } from './core/services/wishlist.service';
 import { AuthService } from './core/auth/auth.service';
+import { ChatWidgetComponent } from './shared/components/chat-widget/chat-widget';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ChatWidgetComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

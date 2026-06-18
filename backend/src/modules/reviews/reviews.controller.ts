@@ -21,7 +21,7 @@ export class ReviewsController {
   @Post('products/:productId/reviews')
   create(
     @CurrentUser() user: SupabaseUser,
-    @Param('productId', ParseUUIDPipe) productId: string,
+    @Param('productId') productId: string,
     @Body() dto: CreateReviewDto,
   ) {
     return this.service.create(user, productId, dto);

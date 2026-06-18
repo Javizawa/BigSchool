@@ -6,3 +6,11 @@ node_modules
 
 # Prisma generated client
 generated/
+
+# TypeScript compilation artifacts (prisma config & seed)
+prisma.config.js
+prisma.config.js.map
+prisma.config.d.ts
+prisma/seed.js
+prisma/seed.js.map
+prisma/seed.d.ts
