@@ -12,14 +12,18 @@ import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 
 @Injectable()
 export class PaymentsService {
-  private readonly stripe!: Stripe;
+  private _stripe?: Stripe;
+
+  private get stripe(): Stripe {
+    return (this._stripe ??= new Stripe(
+      this.config.getOrThrow<string>('STRIPE_SECRET_KEY'),
+    ));
+  }
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-  ) {
-    this.stripe = new Stripe(this.config.getOrThrow<string>('STRIPE_SECRET_KEY'));
-  }
+  ) {}
 
   async createIntent(supabaseUser: SupabaseUser, dto: CreatePaymentIntentDto) {
     const user = await this.resolveUser(supabaseUser.id);
