@@ -20,7 +20,7 @@ jobs:
     name: Lint OpenAPI Spec
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [spec-lint]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -89,7 +89,7 @@ jobs:
       CORS_ORIGIN: http://localhost:4200
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -142,7 +142,7 @@ jobs:
       NG_APP_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.CLOUDINARY_UPLOAD_PRESET }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -187,7 +187,7 @@ jobs:
       NG_APP_STRIPE_PUBLISHABLE_KEY: pk_test_fake
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
       - name: Setup Node
