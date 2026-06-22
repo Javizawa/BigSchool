@@ -5,8 +5,7 @@
   "compilerOptions": {
     "outDir": "./out-tsc/app",
     "rootDir": "./src",
-    "types": ["vite/client"],
-    "noPropertyAccessFromIndexSignature": false
+    "types": ["vite/client"]
   },
   "include": [
     "src/**/*.ts"
