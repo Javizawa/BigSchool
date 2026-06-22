@@ -12,7 +12,7 @@ import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 
 @Injectable()
 export class PaymentsService {
-  private readonly stripe: Stripe;
+  private readonly stripe!: Stripe;
 
   constructor(
     private readonly prisma: PrismaService,
