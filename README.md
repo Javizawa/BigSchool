@@ -1,87 +1,283 @@
 # BigSchool
 
-Tienda online de zapatillas desarrollada con Angular, NestJS y Supabase.
+Tienda online de zapatillas deportivas y lifestyle desarrollada con Angular, NestJS y Supabase. El proyecto sigue un enfoque **design-first** con OpenAPI 3.1 como fuente de verdad, generación automática de tipos/clientes desde el spec, e integra un **agente conversacional de IA** que ayuda a los usuarios a encontrar productos en tiempo real.
+
+---
+
+## Descripción general
+
+BigSchool permite al usuario navegar un catálogo de zapatillas por marca, categoría, género, talla y precio; añadir productos a la wishlist y al carrito; completar el pago con Stripe; gestionar pedidos y solicitar devoluciones. Los administradores disponen de un panel completo de backoffice. El agente de IA accede al catálogo real de la base de datos y, si el usuario está autenticado, también puede consultar el estado de sus pedidos.
+
+---
 
 ## Stack tecnológico
 
-| Capa | Tecnología |
-|------|-----------|
-| Frontend | Angular (última versión) + Tailwind CSS |
-| Backend | NestJS (Node.js + TypeScript) |
-| Base de datos | Supabase (PostgreSQL gestionado) |
-| Autenticación | Supabase Auth (email/password + Google OAuth) |
-| Imágenes | Cloudinary |
-| Pagos | Stripe |
-| API spec | OpenAPI 3.1 (design-first) |
-| Tests E2E | Playwright |
-| CI/CD | GitHub Actions |
+| Capa | Tecnología | Función |
+|------|-----------|---------|
+| Frontend | Angular 22 (standalone + signals) | SPA del cliente |
+| Estilos | Tailwind CSS v4 + Angular CDK | UI sin sistema de diseño impuesto |
+| Backend | NestJS 11 (Node.js + TypeScript) | API REST |
+| Base de datos | Supabase (PostgreSQL) | BD + Auth + Realtime |
+| ORM | Prisma 7 | Acceso a datos tipado |
+| Autenticación | Supabase Auth | Email/contraseña + Google OAuth |
+| Imágenes | Cloudinary | CDN + transformaciones on-the-fly |
+| Pagos | Stripe | PaymentIntent + webhooks |
+| Agente IA | Groq — Llama 3.3 70B | Inferencia LLM con tool calling |
+| API Spec | OpenAPI 3.1 | Fuente de verdad del contrato (design-first) |
+| Generación frontend | Orval 8 | Angular services + tipos desde el spec |
+| Generación backend | openapi-typescript 7 | Tipos TypeScript desde el spec |
+| Linting del spec | Spectral | Validación de reglas OpenAPI en CI |
+| Tests E2E | Playwright | Flujos críticos de usuario |
+| CI/CD | GitHub Actions | Lint, tests, build y drift check del spec |
 
-## Estructura del repositorio
+---
+
+## Instalación y ejecución
+
+### Requisitos previos
+
+- Node.js >= 22
+- npm >= 10
+- Cuenta en [Supabase](https://supabase.com)
+- Cuenta en [Cloudinary](https://cloudinary.com)
+- Cuenta en [Stripe](https://stripe.com)
+- Cuenta en [Groq](https://console.groq.com) (clave de API gratuita)
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/Javizawa/BigSchool.git
+cd BigSchool
+```
+
+### 2. Configurar variables de entorno
+
+```bash
+# Backend
+cp .env.example backend/.env
+# Editar backend/.env con los valores reales de Supabase, Cloudinary, Stripe y Groq
+
+# Frontend
+cp .env.example frontend/.env
+# Editar frontend/.env con las variables públicas (prefijo NG_APP_)
+```
+
+Consulta [.env.example](.env.example) para ver todas las variables y dónde obtenerlas.
+
+### 3. Instalar dependencias
+
+```bash
+# Dependencias raíz (Playwright + herramientas de generación de spec)
+npm install
+
+# Backend
+cd backend && npm install
+
+# Frontend
+cd frontend && npm install
+```
+
+### 4. Generar el cliente Prisma y poblar la base de datos
+
+```bash
+cd backend
+npx prisma generate
+npm run seed
+```
+
+### 5. Lanzar en desarrollo
+
+```bash
+# Terminal 1 — backend
+cd backend && npm run start:dev
+
+# Terminal 2 — frontend
+cd frontend && npm run start
+```
+
+La aplicación queda disponible en:
+
+| Servicio | URL |
+|----------|-----|
+| Frontend | http://localhost:4200 |
+| Backend API | http://localhost:3000/api/v1 |
+| Swagger UI | http://localhost:3000/api/docs |
+
+---
+
+## Estructura del proyecto
 
 ```
 BigSchool/
 ├── .github/
 │   ├── workflows/
-│   │   └── ci.yml              # Pipeline de CI (lint, tests, build)
-│   ├── dependabot.yml          # Actualizaciones automáticas de dependencias
+│   │   └── ci.yml                  # Pipeline CI: lint, tests, build, drift check
+│   ├── dependabot.yml
 │   └── pull_request_template.md
 ├── docs/
 │   └── openapi/
-│       └── openapi.yaml        # Spec OpenAPI 3.1 (fuente de verdad)
-├── frontend/                   # Angular app
-├── backend/                    # NestJS app
-├── .claude/
-│   └── CLAUDE.md               # Documentación del proyecto para Claude Code
-├── .env.example                # Plantilla de variables de entorno
-├── .gitignore
-├── .spectral.yaml              # Reglas de linting del spec OpenAPI
-└── README.md
+│       └── openapi.yaml            # Spec OpenAPI 3.1 — FUENTE DE VERDAD
+├── frontend/                       # Angular 22 app
+│   └── src/app/
+│       ├── core/
+│       │   ├── api/
+│       │   │   ├── generated/      # Servicios Angular + tipos generados por Orval
+│       │   │   └── *.api.ts        # Servicios HTTP artesanales
+│       │   ├── auth/               # AuthService (Supabase)
+│       │   ├── guards/             # auth.guard, admin.guard
+│       │   ├── interceptors/       # auth.interceptor (JWT)
+│       │   ├── models/             # Tipos de dominio
+│       │   └── services/           # cart.service, wishlist.service
+│       ├── features/
+│       │   ├── admin/              # Panel de administración
+│       │   ├── auth/               # Login, registro, callback OAuth
+│       │   ├── cart/               # Carrito de compra
+│       │   ├── checkout/           # Flujo de pago Stripe
+│       │   ├── home/               # Página principal
+│       │   ├── products/           # Listado y detalle de productos
+│       │   ├── size-guide/         # Guía de tallas
+│       │   └── user/               # Perfil, pedidos, devoluciones, wishlist
+│       ├── layouts/                # main-layout, admin-layout
+│       └── shared/
+│           └── components/
+│               └── chat-widget/    # Widget del agente IA
+├── backend/                        # NestJS 11 app
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── seed.ts
+│   └── src/
+│       ├── modules/
+│       │   ├── admin/              # CRUD backoffice (productos, pedidos, usuarios…)
+│       │   ├── agent/              # Agente IA: controller, service, tools
+│       │   ├── auth/               # Sincronización usuario Supabase
+│       │   ├── brands/             # Marcas
+│       │   ├── cart/               # Carrito
+│       │   ├── categories/         # Categorías
+│       │   ├── coupons/            # Cupones
+│       │   ├── newsletter/         # Suscripción newsletter
+│       │   ├── orders/             # Pedidos
+│       │   ├── payments/           # Stripe PaymentIntent
+│       │   ├── products/           # Catálogo
+│       │   ├── returns/            # Devoluciones
+│       │   ├── reviews/            # Valoraciones
+│       │   ├── size-guide/         # Guía de tallas
+│       │   ├── users/              # Perfil de usuario
+│       │   └── webhooks/           # Webhook de Stripe
+│       └── types/
+│           └── api.ts              # Tipos TypeScript generados desde el spec
+├── orval.config.ts                 # Configuración de generación frontend
+├── .spectral.yaml                  # Reglas de linting del spec OpenAPI
+├── playwright.config.ts
+└── package.json                    # Raíz: scripts generate:api + Playwright
 ```
 
-## Requisitos previos
+---
 
-- Node.js >= 20
-- npm >= 10
-- Cuenta en [Supabase](https://supabase.com)
-- Cuenta en [Cloudinary](https://cloudinary.com)
-- Cuenta en [Stripe](https://stripe.com)
+## Funcionalidades principales
 
-## Configuración del entorno
+### Catálogo público
+
+- Listado de zapatillas con filtros por marca, categoría, género, talla, precio y oferta
+- Ordenación y paginación del catálogo
+- Detalle de producto con galería de imágenes (Cloudinary), variantes por talla y color, y disponibilidad de stock
+- Valoraciones de productos con puntuación media y distribución de estrellas
+- Guía de tallas (EU / US / UK / cm)
+- Suscripción a newsletter
+
+### Autenticación
+
+- Registro e inicio de sesión con email y contraseña
+- Inicio de sesión con Google OAuth
+- JWT de Supabase enviado en cada petición al backend; NestJS valida la firma sin generar tokens propios
+- Guardias funcionales para rutas de usuario y de administrador
+- Interceptor HTTP que inyecta el token automáticamente
+
+### Zona de usuario
+
+- Gestión de perfil (nombre, teléfono, avatar)
+- Direcciones de envío (múltiples, con dirección por defecto)
+- Wishlist (añadir y eliminar productos)
+- Historial de pedidos con detalle de cada línea y estado de envío
+- Solicitud y seguimiento de devoluciones
+- Notificaciones de reposición de stock para variantes agotadas
+
+### Carrito y checkout
+
+- Carrito persistente en base de datos (sincronizado entre sesiones)
+- Aplicación de cupones de descuento (porcentaje o importe fijo)
+- Flujo de pago completo con Stripe:
+  1. Creación del pedido en estado `pending_payment`
+  2. Generación de `PaymentIntent` en Stripe
+  3. Integración con Stripe.js en el frontend
+  4. Webhook de confirmación que actualiza el pedido a `confirmed`
+
+### Panel de administración
+
+- CRUD completo de productos con variantes (talla, color, stock, imágenes via Cloudinary)
+- Gestión de categorías y marcas
+- Gestión de pedidos (cambio de estado, añadir tracking de envío, notas internas)
+- Gestión de devoluciones (aprobar, rechazar, procesar reembolso)
+- Gestión de usuarios (cambio de rol, suspensión)
+- Gestión de cupones de descuento (tipo, valor, fechas de validez, límite de usos)
+- Dashboard de analíticas: ingresos, pedidos, usuarios nuevos y variantes con stock bajo
+
+### Agente conversacional IA
+
+Widget de chat flotante disponible en toda la tienda. Está impulsado por **Groq** con el modelo **Llama 3.3 70B** y utiliza *tool calling* para acceder a datos reales en tiempo real.
+
+**Herramientas disponibles por rol:**
+
+| Herramienta | Anónimo | Usuario | Admin |
+|-------------|:-------:|:-------:|:-----:|
+| `search_products` — busca en el catálogo con filtros | ✓ | ✓ | ✓ |
+| `get_product_details` — variantes, tallas y stock exactos | ✓ | ✓ | ✓ |
+| `recommend_products` — productos relacionados | ✓ | ✓ | ✓ |
+| `get_order_status` — estado de un pedido del usuario | — | ✓ | ✓ |
+| `get_sales_analytics` — métricas de ventas del periodo | — | — | ✓ |
+
+El agente mantiene contexto conversacional en sesión (TTL de 30 minutos), responde en el idioma del usuario, formatea las respuestas en Markdown (renderizado en el widget) e incluye enlaces directos a las fichas de producto.
+
+### Spec-Driven Development (SDD)
+
+El proyecto implementa un ciclo completo de desarrollo orientado al spec:
+
+1. **Fuente de verdad** — `docs/openapi/openapi.yaml` (OpenAPI 3.1)
+2. **Linting** — Spectral valida que todos los endpoints tengan `operationId` y `tags`
+3. **Generación frontend** — Orval genera Angular services (`HttpClient`) y tipos TypeScript en `frontend/src/app/core/api/generated/`
+4. **Generación backend** — openapi-typescript genera interfaces `paths`, `components` y `operations` en `backend/src/types/api.ts`
+5. **Detección de drift en CI** — el job `spec-codegen` regenera y falla el PR si los ficheros generados no están sincronizados con el spec
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/Javizawa/BigSchool.git
-cd BigSchool
-
-# Configurar variables de entorno del backend
-cp .env.example backend/.env
-# Editar backend/.env con los valores reales
-
-# Configurar variables de entorno del frontend
-cp .env.example frontend/.env
-# Editar frontend/.env con los valores reales
+# Regenerar tipos y servicios desde el spec (ejecutar tras modificar openapi.yaml)
+npm run generate:api
 ```
 
-Consulta [.env.example](.env.example) para ver todas las variables necesarias y dónde obtenerlas.
+---
 
-## Instalación y desarrollo
+## Credenciales de prueba
 
-```bash
-# Backend
-cd backend
-npm install
-npm run start:dev
+Los usuarios se gestionan a través de **Supabase Auth**. Para probar la aplicación en local:
 
-# Frontend (en otra terminal)
-cd frontend
-npm install
-npm run start
-```
+### Crear usuario de prueba (rol USER)
 
-La aplicación estará disponible en:
-- Frontend: `http://localhost:4200`
-- Backend API: `http://localhost:3000/api/v1`
-- Swagger UI: `http://localhost:3000/api/docs`
+1. Accede a `http://localhost:4200/auth/register`
+2. Regístrate con cualquier email y contraseña
+
+### Crear usuario administrador (rol ADMIN)
+
+1. Crea un usuario normal desde el registro o directamente en el panel de Supabase
+2. En **Supabase Dashboard → Authentication → Users**, selecciona el usuario
+3. En la sección **App metadata**, añade:
+   ```json
+   { "role": "ADMIN" }
+   ```
+4. Guarda y vuelve a iniciar sesión para que el JWT refleje el nuevo rol
+
+### Usuario para el seed (base de datos de desarrollo)
+
+El seed (`npm run seed`) crea marcas, categorías, productos y variantes, pero no crea usuarios de Supabase. Los usuarios se crean siempre desde el flujo de registro o el dashboard de Supabase.
+
+---
 
 ## Tests
 
@@ -89,10 +285,10 @@ La aplicación estará disponible en:
 # Backend — unit tests
 cd backend && npm run test
 
-# Backend — tests con coverage
+# Backend — cobertura
 cd backend && npm run test:cov
 
-# Backend — tests E2E
+# Backend — tests de integración
 cd backend && npm run test:e2e
 
 # Frontend — unit tests
@@ -102,37 +298,45 @@ cd frontend && npm run test
 npx playwright test
 ```
 
+---
+
 ## Convenciones del proyecto
 
 ### Ramas (GitHub Flow)
 
-- `main` — rama principal, siempre desplegable
-- `feature/nombre-de-la-feature` — nuevas funcionalidades
-- `fix/descripcion-del-bug` — correcciones
-- `chore/descripcion` — mantenimiento, dependencias, configuración
+| Rama | Uso |
+|------|-----|
+| `main` | Producción — siempre desplegable |
+| `feature/nombre` | Nuevas funcionalidades |
+| `fix/descripcion` | Correcciones de bugs |
+| `chore/descripcion` | Mantenimiento, dependencias, CI |
 
-Toda rama se mergea a `main` mediante Pull Request con al menos una revisión aprobada.
+Todo cambio entra a `main` por Pull Request.
 
 ### Commits (Conventional Commits)
 
 ```
 feat: añadir endpoint de wishlist
 fix: corregir cálculo de descuento en carrito
-chore: actualizar dependencias de NestJS
-docs: actualizar spec OpenAPI con endpoints de returns
+docs: actualizar spec OpenAPI con returns
 test: añadir tests de integración para órdenes
+chore: actualizar dependencias de NestJS
 ```
 
-### Proceso design-first
+### Flujo de trabajo design-first
 
-1. Modificar `docs/openapi/openapi.yaml` antes de tocar el código
-2. El PR debe incluir la actualización del spec si hay cambio en la API
-3. El spec se valida automáticamente en CI con Spectral
+Cualquier cambio que afecte a la API debe:
 
-## Secretos en GitHub Actions
+1. Modificar `docs/openapi/openapi.yaml` primero
+2. Ejecutar `npm run generate:api` para regenerar tipos y servicios
+3. Commitear spec + ficheros generados en el mismo PR
+4. El CI bloqueará el PR si los ficheros generados no están sincronizados
 
-Para que el pipeline de CI funcione, configurar los siguientes secretos en:
-`GitHub → Repository → Settings → Secrets and variables → Actions`
+---
+
+## Secretos necesarios en GitHub Actions
+
+Configurar en `GitHub → Repository → Settings → Secrets and variables → Actions`:
 
 | Secret | Descripción |
 |--------|-------------|
@@ -147,23 +351,17 @@ Para que el pipeline de CI funcione, configurar los siguientes secretos en:
 | `STRIPE_SECRET_KEY` | Clave secreta de Stripe |
 | `STRIPE_PUBLISHABLE_KEY` | Clave pública de Stripe |
 | `STRIPE_WEBHOOK_SECRET` | Secret del webhook de Stripe |
+| `GROQ_API_KEY` | Clave de API de Groq (agente IA) |
 
-## GitHub Projects
-
-El seguimiento de tareas se gestiona en [GitHub Projects](https://github.com/Javizawa/BigSchool/projects).
-
-Columnas del tablero:
-- **Backlog** — ideas y funcionalidades pendientes de planificar
-- **Ready** — listo para desarrollar (spec y criterios de aceptación definidos)
-- **In Progress** — en desarrollo activo
-- **In Review** — PR abierto, pendiente de revisión
-- **Done** — mergeado a main
+---
 
 ## Documentación de la API
 
 El spec OpenAPI completo está en [`docs/openapi/openapi.yaml`](docs/openapi/openapi.yaml).
 
-Cuando el backend esté en marcha, la documentación interactiva (Swagger UI) estará disponible en `http://localhost:3000/api/docs`.
+La documentación interactiva (Swagger UI) está disponible mientras el backend está en marcha en `http://localhost:3000/api/docs`.
+
+---
 
 ## Licencia
 
