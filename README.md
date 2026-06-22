@@ -103,6 +103,53 @@ La aplicación queda disponible en:
 | Backend API | http://localhost:3000/api/v1 |
 | Swagger UI | http://localhost:3000/api/docs |
 
+### 6. Despliegue en producción
+
+El proyecto se despliega automáticamente al hacer merge a `main`:
+
+| Servicio | Plataforma | URL |
+|----------|-----------|-----|
+| Frontend | Vercel | https://big-school-lime.vercel.app |
+| Backend API | Railway | https://bigschool-production.up.railway.app/api/v1 |
+
+#### Frontend — Vercel
+
+Vercel detecta el directorio `frontend/` automáticamente. El build corre `npm run build`, que ejecuta primero `scripts/set-env.js` para escribir las variables de entorno en `src/environments/environment.prod.ts` antes de que compile Angular.
+
+Variables que deben estar configuradas en **Vercel → Settings → Environment Variables** (Production):
+
+| Variable | Descripción |
+|----------|-------------|
+| `NG_APP_API_URL` | URL base del backend (ej. `https://bigschool-production.up.railway.app/api/v1`) |
+| `NG_APP_SUPABASE_URL` | URL del proyecto Supabase |
+| `NG_APP_SUPABASE_ANON_KEY` | Clave anónima de Supabase |
+| `NG_APP_STRIPE_PUBLISHABLE_KEY` | Clave pública de Stripe |
+| `NG_APP_CLOUDINARY_CLOUD_NAME` | Nombre del cloud en Cloudinary |
+| `NG_APP_CLOUDINARY_UPLOAD_PRESET` | Upload preset sin firma |
+
+#### Backend — Railway
+
+Railway construye la imagen con el `Dockerfile` del directorio `backend/` y arranca con `node dist/src/main`.
+
+Variables que deben estar configuradas en **Railway → Variables**:
+
+| Variable | Descripción |
+|----------|-------------|
+| `DATABASE_URL` | Cadena de conexión PostgreSQL de Supabase |
+| `DIRECT_URL` | URL directa de Supabase (para migraciones Prisma) |
+| `SUPABASE_URL` | URL del proyecto Supabase |
+| `SUPABASE_ANON_KEY` | Clave anónima de Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio de Supabase |
+| `SUPABASE_JWT_SECRET` | Secret JWT de Supabase |
+| `STRIPE_SECRET_KEY` | Clave secreta de Stripe |
+| `STRIPE_WEBHOOK_SECRET` | Secret del webhook de Stripe |
+| `CLOUDINARY_CLOUD_NAME` | Nombre del cloud en Cloudinary |
+| `CLOUDINARY_API_KEY` | API Key de Cloudinary |
+| `CLOUDINARY_API_SECRET` | API Secret de Cloudinary |
+| `CLOUDINARY_UPLOAD_PRESET` | Upload preset sin firma |
+| `GROQ_API_KEY` | Clave de API de Groq (agente IA) |
+| `CORS_ORIGIN` | URL del frontend (ej. `https://big-school-lime.vercel.app`) |
+
 ---
 
 ## Estructura del proyecto
@@ -256,7 +303,38 @@ npm run generate:api
 
 ## Credenciales de prueba
 
+### Stripe (pagos de prueba)
+
+Stripe está en **modo test** — ninguna transacción es real. Usa estos datos en el formulario de pago:
+
+| Campo | Valor |
+|-------|-------|
+| Número de tarjeta | `4242 4242 4242 4242` |
+| Fecha de caducidad | Cualquier fecha futura (ej. `12/28`) |
+| CVC | Cualquier 3 dígitos (ej. `123`) |
+| Código postal | Cualquier 5 dígitos (ej. `12345`) |
+
+Otras tarjetas de prueba útiles:
+
+| Tarjeta | Resultado |
+|---------|-----------|
+| `4000 0000 0000 9995` | Pago rechazado (fondos insuficientes) |
+| `4000 0025 0000 3155` | Requiere autenticación 3D Secure |
+
+Consulta el [catálogo completo de tarjetas de test de Stripe](https://stripe.com/docs/testing#cards).
+
+---
+
 Los usuarios se gestionan a través de **Supabase Auth**. Para probar la aplicación en local:
+
+### Usuarios de prueba (entorno de producción)
+
+Puedes usar estas cuentas directamente en [big-school-lime.vercel.app](https://big-school-lime.vercel.app):
+
+| Rol | Email | Contraseña |
+|-----|-------|-----------|
+| Usuario normal | `usuario@user.com` | `usuario` |
+| Administrador | `salvadorj@monlau.com` | `salvadorj` |
 
 ### Crear usuario de prueba (rol USER)
 
