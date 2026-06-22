@@ -3,7 +3,7 @@ const ngEnv = (import.meta as any).env as Record<string, string>;
 
 export const environment = {
   production: true,
-  apiUrl: '/api/v1',
+  apiUrl: ngEnv['NG_APP_API_URL'] ?? '',
   supabaseUrl: ngEnv['NG_APP_SUPABASE_URL'] ?? '',
   supabaseAnonKey: ngEnv['NG_APP_SUPABASE_ANON_KEY'] ?? '',
   cloudinaryCloudName: ngEnv['NG_APP_CLOUDINARY_CLOUD_NAME'] ?? '',
