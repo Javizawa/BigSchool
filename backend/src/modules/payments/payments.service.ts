@@ -3,7 +3,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { OrderStatus } from '../../../generated/prisma/client';
@@ -12,18 +11,9 @@ import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 
 @Injectable()
 export class PaymentsService {
-  private _stripe?: Stripe;
+  private readonly stripe = new Stripe(process.env['STRIPE_SECRET_KEY']!);
 
-  private get stripe(): Stripe {
-    return (this._stripe ??= new Stripe(
-      this.config.getOrThrow<string>('STRIPE_SECRET_KEY'),
-    ));
-  }
-
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async createIntent(supabaseUser: SupabaseUser, dto: CreatePaymentIntentDto) {
     const user = await this.resolveUser(supabaseUser.id);
