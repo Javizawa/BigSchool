@@ -2,9 +2,12 @@
   "name": "bigschool",
   "private": true,
   "scripts": {
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "generate:api": "orval && openapi-typescript docs/openapi/openapi.yaml -o backend/src/types/api.ts"
   },
   "devDependencies": {
-    "@playwright/test": "^1.52.0"
+    "@playwright/test": "^1.52.0",
+    "openapi-typescript": "^7.13.0",
+    "orval": "^8.18.0"
   }
 }
