@@ -83,8 +83,9 @@ export class ChatWidgetComponent {
         this.loading.set(false);
         this.scrollToBottom();
       },
-      error: () => {
-        const errText = 'Lo siento, no pude procesar tu mensaje. Inténtalo de nuevo.';
+      error: (err: { error?: { message?: string } }) => {
+        const errText =
+          err?.error?.message ?? 'Lo siento, no pude procesar tu mensaje. Inténtalo de nuevo.';
         this.messages.update((msgs) => [
           ...msgs,
           { role: 'assistant', text: errText, html: null, timestamp: new Date() },
