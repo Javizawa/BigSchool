@@ -5,6 +5,6 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 RUN npm ci
 COPY . .
-RUN npx prisma generate && npx tsc -p tsconfig.build.json && ls dist/main.js
+RUN npx prisma generate && npx tsc -p tsconfig.build.json && ls dist/src/main.js
 EXPOSE 3000
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
