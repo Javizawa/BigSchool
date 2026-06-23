@@ -18,9 +18,10 @@ import { SpinnerComponent } from '../../../shared/components/spinner/spinner';
 export class AuthCallbackPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly initialized$ = toObservable(this.auth.initialized);
 
   ngOnInit(): void {
-    toObservable(this.auth.initialized)
+    this.initialized$
       .pipe(filter(Boolean), take(1))
       .subscribe(() => {
         if (this.auth.isAuthenticated()) {
