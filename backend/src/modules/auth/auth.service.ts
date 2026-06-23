@@ -11,8 +11,9 @@ export class AuthService {
     const meta = supabaseUser.user_metadata as
       | Record<string, string>
       | undefined;
-    const firstName = meta?.['first_name'] ?? meta?.['given_name'] ?? '';
-    const lastName = meta?.['last_name'] ?? meta?.['family_name'] ?? '';
+    const fullNameParts = (meta?.['full_name'] ?? meta?.['name'] ?? '').split(' ');
+    const firstName = meta?.['first_name'] ?? meta?.['given_name'] ?? fullNameParts[0] ?? '';
+    const lastName = meta?.['last_name'] ?? meta?.['family_name'] ?? fullNameParts.slice(1).join(' ') ?? '';
 
     return this.prisma.user.upsert({
       where: { supabaseId: supabaseUser.id },
