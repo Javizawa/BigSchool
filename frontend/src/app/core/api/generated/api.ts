@@ -195,7 +195,7 @@ function filterParams(
 
 
 @Injectable({ providedIn: 'root' })
-export class BigSchoolAPIService {
+export class Love4SneakersAPIService {
   private readonly http = inject(HttpClient);
 /**
  * Llamar tras el primer login. Crea o actualiza el registro del usuario

@@ -10,7 +10,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "bigschool-frontend": {
+    "love4sneakers-frontend": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -28,7 +28,7 @@
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "outputPath": {
-              "base": "dist/bigschool-frontend",
+              "base": "dist/love4sneakers-frontend",
               "browser": ""
             },
             "assets": [
@@ -73,10 +73,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "bigschool-frontend:build:production"
+              "buildTarget": "love4sneakers-frontend:build:production"
             },
             "development": {
-              "buildTarget": "bigschool-frontend:build:development"
+              "buildTarget": "love4sneakers-frontend:build:development"
             }
           },
           "defaultConfiguration": "development"

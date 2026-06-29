@@ -14,7 +14,7 @@ import { AuthService } from '../../../core/auth/auth.service';
       <div class="w-full max-w-md">
         <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
           <h1 class="text-2xl font-bold text-gray-900 mb-2">Bienvenido de nuevo</h1>
-          <p class="text-gray-500 text-sm mb-8">Inicia sesión en tu cuenta BigSchool</p>
+          <p class="text-gray-500 text-sm mb-8">Inicia sesión en tu cuenta Love4Sneakers</p>
 
           @if (error()) {
             <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{{ error() }}</div>

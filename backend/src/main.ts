@@ -23,8 +23,8 @@ async function bootstrap() {
   );
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('BigSchool API')
-    .setDescription('API REST para la tienda online de zapatillas BigSchool')
+    .setTitle('Love4Sneakers API')
+    .setDescription('API REST para la tienda online de zapatillas Love4Sneakers')
     .setVersion('0.2.0')
     .addBearerAuth(
       {
