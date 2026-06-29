@@ -27,13 +27,13 @@ import { Component, input } from '@angular/core';
       @if (admin()) {
         <div>
           <p class="text-base font-black leading-none">
-            <span class="text-white">Big</span><span class="text-indigo-400">School</span>
+            <span class="text-white">Love4</span><span class="text-indigo-400">Sneakers</span>
           </p>
           <p class="text-xs text-gray-500 mt-0.5 leading-none">Panel de administración</p>
         </div>
       } @else {
         <span class="text-xl font-black tracking-tight leading-none">
-          <span [class]="darkText() ? 'text-white' : 'text-indigo-600'">Big</span><span [class]="darkText() ? 'text-indigo-400' : 'text-gray-900'">School</span>
+          <span [class]="darkText() ? 'text-white' : 'text-indigo-600'">Love4</span><span [class]="darkText() ? 'text-indigo-400' : 'text-gray-900'">Sneakers</span>
         </span>
       }
     </div>
