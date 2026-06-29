@@ -10,7 +10,7 @@ import { RouterLink } from '@angular/router';
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div>
-            <h4 class="text-white font-bold mb-3">BigSchool</h4>
+            <h4 class="text-white font-bold mb-3">Love4Sneakers</h4>
             <p class="text-sm">Tu tienda de zapatillas online. Las mejores marcas al mejor precio.</p>
           </div>
           <div>
@@ -39,7 +39,7 @@ import { RouterLink } from '@angular/router';
           </div>
         </div>
         <div class="border-t border-gray-800 pt-6 text-sm text-center">
-          © {{ year }} BigSchool. Todos los derechos reservados.
+          © {{ year }} Love4Sneakers. Todos los derechos reservados.
         </div>
       </div>
     </footer>

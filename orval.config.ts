@@ -1,7 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
-  bigschool: {
+  love4sneakers: {
     input: {
       target: './docs/openapi/openapi.yaml',
     },

@@ -1,4 +1,4 @@
-# BigSchool
+# Love4Sneakers
 
 Tienda online de zapatillas deportivas y lifestyle desarrollada con Angular, NestJS y Supabase. El proyecto sigue un enfoque **design-first** con OpenAPI 3.1 como fuente de verdad, generación automática de tipos/clientes desde el spec, e integra un **agente conversacional de IA** que ayuda a los usuarios a encontrar productos en tiempo real.
 
@@ -6,7 +6,7 @@ Tienda online de zapatillas deportivas y lifestyle desarrollada con Angular, Nes
 
 ## Descripción general
 
-BigSchool permite al usuario navegar un catálogo de zapatillas por marca, categoría, género, talla y precio; añadir productos a la wishlist y al carrito; completar el pago con Stripe; gestionar pedidos y solicitar devoluciones. Los administradores disponen de un panel completo de backoffice. El agente de IA accede al catálogo real de la base de datos y, si el usuario está autenticado, también puede consultar el estado de sus pedidos.
+Love4Sneakers permite al usuario navegar un catálogo de zapatillas por marca, categoría, género, talla y precio; añadir productos a la wishlist y al carrito; completar el pago con Stripe; gestionar pedidos y solicitar devoluciones. Los administradores disponen de un panel completo de backoffice. El agente de IA accede al catálogo real de la base de datos y, si el usuario está autenticado, también puede consultar el estado de sus pedidos.
 
 ---
 
@@ -46,8 +46,8 @@ BigSchool permite al usuario navegar un catálogo de zapatillas por marca, categ
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/Javizawa/BigSchool.git
-cd BigSchool
+git clone https://github.com/Javizawa/Love4Sneakers.git
+cd Love4Sneakers
 ```
 
 ### 2. Configurar variables de entorno
@@ -155,7 +155,7 @@ Variables que deben estar configuradas en **Railway → Variables**:
 ## Estructura del proyecto
 
 ```
-BigSchool/
+Love4Sneakers/
 ├── .github/
 │   ├── workflows/
 │   │   └── ci.yml                  # Pipeline CI: lint, tests, build, drift check

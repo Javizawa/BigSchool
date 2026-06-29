@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: BigSchool API
+  title: Love4Sneakers API
   version: 0.2.0
   description: |
-    API REST para la tienda online de zapatillas BigSchool.
+    API REST para la tienda online de zapatillas Love4Sneakers.
 
     ## Stack
     - **Backend**: NestJS (Node.js + TypeScript)
@@ -35,7 +35,7 @@ info:
 servers:
   - url: http://localhost:3000/api/v1
     description: Desarrollo local
-  - url: https://api.bigschool.com/v1
+  - url: https://bigschool-production.up.railway.app/api/v1
     description: Producción
 
 tags:
